@@ -21,7 +21,7 @@ text_df <- tibble(
 text_df
 
 # Doing things like counting words requires us to split a long string of text into individual constituents or "words".
-# The unnest_tokens command takes a data frame with a column of text, and splits that oclumn into one row per word.
+# The unnest_tokens command takes a data frame with a column of text, and splits that column into one row per word.
 tokenized_df <- unnest_tokens(text_df, output = "word", input = "txt", token = "words")
 
 # This gives us back a new data frame with 2 columns (that original "id" column, now repeated, and "word")
@@ -61,9 +61,15 @@ distinct_words <- distinct(tokenized_df, word)
 
 # 1. calculate the total number of words and save it to a variable
 
-# 2. calculate the distinct number of words and save it to a variable
+### YOUR CODE HERE
 
-# 3. Divide the distinct number of words by the total number of words
+# 2. Calculate the distinct number of words and save it to a variable
+
+### YOUR CODE HERE
+
+# 3. Divide the distinct number of words by the total number of words (hint: divide by using / )
+
+### YOUR CODE HERE
 
 # Counting word ocurrence
 
@@ -115,5 +121,4 @@ token_stats <- token_counts %>%
 
 # What's the median word length?
 
-# Finally, we can save our data frame as a table using the function write_csv
-write_csv(token_Stats, file = "output/practice_data.csv")
+
