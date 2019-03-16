@@ -1,1 +1,1 @@
-install.packages(c("quanteda", "readr", "dplyr", "ggplot2", "tidytext", "readtext"))
+install.packages(c("quanteda", "tidytext", "readtext"))
