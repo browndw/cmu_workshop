@@ -14,7 +14,7 @@ text
 # going to get used to this pattern over the next few workshops.
 text_df <- tibble(
   id = 1, # The first column, which we'll label "id", will serve as an ID number for this text
-  txt = text # The second column will contain that original text. WE'll label it "txt"
+  txt = text # The second column will contain that original text. We'll label it "txt"
 )
 
 # This gives us a table with 2 columns and one row.
@@ -108,7 +108,7 @@ arrange(token_counts, desc(n))
 # We had ro run several operations on our original data frame to get to htis end result. The tidyverse introduces the operator: %>% 
 # This is called a "pipe", and it sends the output from one function into the input of the next function. Here's our chain of commands needed to get to the word count table we ended with
 
-text_df %>% 
+token_counts <- text_df %>% 
   unnest_tokens(output = word, input = txt, token = "words") %>% 
   count(word) %>% 
   arrange(desc(n))
@@ -121,4 +121,26 @@ token_stats <- token_counts %>%
 
 # What's the median word length?
 
+# Quick intro to plotting ----
 
+# We'll be doing more plotting in the next workshop, but we'll finish this intro with the most basic plot: a bar plot.
+
+# ggplot() takes a data frame, and then uses aes() (for "aesthetics") to specify which columns should be mapped to which visual variables. Once you specify this base, you then use the + sign to add at least one geom_ layer (for "geometry") which specifies which way you want to render the aesthethics you specified.
+
+ggplot(token_counts, aes(x = word, y = n)) + # Our graph will be very basic - we just want to plot the frequency of each word along the x-axis
+  geom_col() # And we will use a bar plot to do this.
+
+# This looks a bit ugly to start out with, because our x axis values are whole words. ggplot allows a LOT of visual customization, but for now we'll just use coord_flip() to flip the axes and display the labels more comfortably
+
+ggplot(token_counts, aes(x = word, y = n)) +
+  geom_col() +
+  coord_flip()
+
+# In this caese, we may want to rearrange our data so that the most frequently ocurring word comes first. We could do this on the underlying data, but since right now we just want to do this in the context of our plot, we'll do the reordering right inside the ggplot(aes()) call.
+ggplot(token_counts, aes(x = reorder(word, n), y = n)) +
+  geom_col() +
+  coord_flip()
+
+# Earlier you counted all the letter ocurrences in this text. Create a plot showing them in order:
+
+### YOUR CODE HERE
