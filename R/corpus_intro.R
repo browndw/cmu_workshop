@@ -1,14 +1,7 @@
-
-# To load the packages we'll be using, simply run all 3 lines.
+# Load the libraries we need
+library(tidyverse)
 library(readtext)
 library(quanteda)
-library(ggplot2)
-
-# Run this line if you have a Mac OS to set your working directory to the "wf_workshop" folder.
-setwd("~/Documents/wf_workshop")
-
-# Run this line if you have a Windows OS to set your working directory to the "wf_workshop" folder.
-setwd("~/wf_workshop")
 
 # The first thing we are going to do is gather a list of files that we want to load into our corpus.
 # We could point the "readtext" function to a our "academic" directory, so why do it this way?
@@ -17,26 +10,49 @@ setwd("~/wf_workshop")
 # Starting from a files list is a simple solution, no matter the underlying file structure of our corpus.
 # And note that the "list.files" function allows us to specify the type of file we want to load, as well as whether we want to locate files in subfolders ("recursive").
 
-data_dir <- list.files("data/academic/", pattern="*.txt", recursive = TRUE, full.names = TRUE)
+text_files <- dir("data/academic/", pattern = "*.txt", recursive = TRUE, full.names = TRUE)
 
 # From the files list we can create our corpus object by combining the "corpus" and "readtext" functions.
 # There are some advantages in separating these steps.
-micusp_corpus <- corpus(readtext(data_dir))
+micusp_corpus <- as_tibble(readtext(text_files))
+micusp_corpus
 
-# Now check the summary of our corpus object.
-summary(micusp_corpus)
-
-# Our data comes from multiple disciplines, which are indicated in the file names.
-# What if want to compare the type-to-token ratios from the disciplines?
-# There are a variety of ways to subset data in R. For columns containing numeric and categorical variables, "subset" is easy and useful.
-# Here, however, we are going to work on subsetting within our corpus object using quanteda's framework.
-# First, we can assign new metadata to our corpus using the "docvars" (document variables) function.
-# In this case we tell it to add the field "Discipline" to "micusp_corpus".
-# The next part is based on regular expressions. The expression says find the first three letters in the "doc_id" and copy those into the new column.
-docvars(micusp_corpus, "Discipline") <- gsub("(\\w{3})\\..*?$", "\\1", rownames(micusp_corpus$documents))
+# In this collection, the file name encodes the discipline of the document in the first three characters of the doc_id. str_sub() lets us extract a portion of this string. Add a column called discipline to the table using mutate()
+micusp_corpus <- micusp_corpus %>% 
+  mutate(discipline = str_sub(doc_id, start = 1, end = 3))
 
 # Checking the summary again, we see the new "Discipline" column.
 summary(micusp_corpus)
+
+# Use count to see what the disciplines and their document counts are:
+count(micusp_corpus, discipline)
+
+# Our data comes from multiple disciplines, which are indicated in the file names.
+# What if want to compare the type-to-token ratios from the disciplines?
+# First we need to tokenize this whole corpus using the unnest_tokens function
+tokenized_micusp_corpus <- micusp_corpus %>% 
+  unnest_tokens(output = word, input = text, token = "words")
+
+# This corpus still contains numbers. To filter thouse out of our set, we will use the filter() function. Filter takes a table and then a function or expresison that returns either TRUE or FALSE for each row. The function we'll pass to filter is str_detect(), which we'll ask to look for any digits
+tokenized_micusp_corpus <- tokenized_micusp_corpus %>% 
+  filter(!str_detect(word, "\\d"))
+
+# Right now, our data is a "long" format, with one row per word per document. We would like to create a mtrix that has one row per document, and one column per "word"
+micusp_document_token_counts <- tokenized_micusp_corpus %>% 
+  count(doc_id, word)
+
+
+# Let's look at the 10 most frequent words across this corpus by coutning up all the word appearances.
+micusp_counts <- tokenized_micusp_corpus %>% 
+  count(word) %>% 
+  arrange(desc(n))
+
+# We can also calculate a normalized frequency just as we did in "text_intro.R".
+# First we calculate and store the total number of words in our corpus.
+total_words <- sum(micusp_counts$n)
+
+micusp_counts <- micusp_counts %>% 
+  mutate(norm_freq = n / total_words)
 
 # Let's begin with the some of things we did using basic functions in "text_intro.R".
 # With quanteda, however, we can use built-in functions to make our work much easier.
@@ -45,57 +61,39 @@ summary(micusp_corpus)
 # Notice the various arguments we can use.
 # These give us control over what exactly we want to count.
 # We'll call our data object "micusp_dfm".
-micusp_dfm <- dfm(micusp_corpus, groups = "Discipline", remove_punct = TRUE, remove_numbers = TRUE, remove_symbols = TRUE)
-
-# Let's look at the 10 most frequent words in "micusp_dfm" by calling "textstat_frequency".
-textstat_frequency(micusp_dfm, n=10)
-
-# We can also coerce those frequency counts into a data frame.
-micusp_counts <- as.data.frame(textstat_frequency(micusp_dfm))
-
-# We can also calculate a normalized frequency just as we did in "text_intro.R".
-# First we calculate and store the total number of words in our corpus.
-total_words <- sum(micusp_counts$frequency)
-
-# We can use the same "normalize" function.
-# Though this one normalizes per 1 million words.
-normalize <- function (x) { 
-  normal <- (x/total_words)*1000000
-  normal <- round(normal, 2)
-  return(normal)
-}
-
-# Use "mapply" to iterate down the frequency column.
-frequency_norm <- mapply(normalize, micusp_counts$frequency)
-
-# Append the result to our data frame.
-micusp_counts$frequency_norm <- frequency_norm
-
-# Check the result.
-View(micusp_counts)
+micusp_dfm <- as.dfm(cast_dfm(micusp_document_token_counts, document = doc_id, term = word, value = n))
 
 # We might be interested in knowing what words distinguish one group from another.
 # In our corpus, groups are defined by discipline.
 # Using the "textstat_keyness" function, we can, for example, comparing English to the rest of the corpus.
 # Here we can generate the top 10 keywords.
 # We can select a variety of measures, but "lr" is log-likelihood (with a Williams correction as a default).
-head(textstat_keyness(micusp_dfm, target = "ENG", measure = "lr"), 10)
+
+# First, we identify which documents from our original corpus data belong to the "ENG" discipline
+eng <- micusp_corpus$discipline == "ENG"
+textstat_keyness(micusp_dfm, target = eng, measure = "lr")
 
 # Or we could use biology as our target.
-head(textstat_keyness(micusp_dfm, target = "BIO", measure = "lr"), 10)
+bio <- micusp_corpus$discipline == "BIO"
+textstat_keyness(micusp_dfm, target = bio, measure = "lr")
 
 # What if we wanted to compare English and biology specifically?
-# To do that, we would create a separate sub-corpus using the "corpus_subset" function.
-micusp_compare <- corpus_subset(micusp_corpus, Discipline %in% c("BIO", "ENG"))
+# To do that, we would create a separate sub-corpus and then repeat our same tokenization and word coutning process before. Noe that we've run all tehse commands separately above, but here we chain them together using %>%
+micusp_compare_corpus <- micusp_corpus %>% 
+  filter(discipline %in% c("BIO", "ENG"))
 
-# Again, we need to create a document-feature matrix.
-compare_dfm <- dfm(micusp_compare, groups = "Discipline", remove_punct = TRUE, remove_numbers = TRUE, remove_symbols = TRUE)
+micusp_compare_dfm <- micusp_compare_corpus %>% 
+  unnest_tokens(output = word, input = text, token = "words") %>% 
+  filter(!str_detect(word, "\\d")) %>% 
+  count(doc_id, word) %>% 
+  cast_dfm(document = doc_id, term = word, value = n)
 
 # Let's look at the top 10 keywords.
 # Note the count in the reference corpus ("n_reference") is much smaller than when we did this the first time.
 # That's because our reference corpus consists only of biology texts, rather than texts from all other disciplines.
 # Interesting, though, the list is quite similar.
-head(textstat_keyness(compare_dfm, target = "ENG", measure = "lr"), 10)
+compare_eng <- micusp_compare_corpus$discipline == "ENG"
+micusp_keyness <- textstat_keyness(micusp_compare_dfm, target = compare_eng, measure = "lr")
 
 # And for biology.
 head(textstat_keyness(compare_dfm, target = "BIO", measure = "lr"), 10)
@@ -106,62 +104,59 @@ micusp_keyness <- as.data.frame(textstat_keyness(compare_dfm, target = "ENG", me
 # Check the result.
 View(micusp_keyness)
 
-# Note the scientific notion in our p-values column and the many decimal places in the keyness ("G2") column.
-# We going to convert these columns.
-# The first to 5 decimal places and the other to 2.
-micusp_keyness[,"p"] <- round(micusp_keyness[,"p"],5)
-micusp_keyness[,"G2"] <- round(micusp_keyness[,"G2"],2)
+## TO DOs
 
-# Check the result
-View(micusp_keyness)
+# Get a token count by discipline. You'll need to start from the tokenized_micusp_corpus data and count() - but now you will need to count based on discipline rather than based on doc_id
 
-# Save the table to the "output" folder.
-write.csv(micusp_keyness, file="output/micusp_keyness.csv", row.names = FALSE)
-
-# Now let's go back to our corpus summary.
-summary(micusp_corpus, n=10)
-
-# As we've done with other data, we can coerce the summary into a data frame.
-# As we have more than 100 texts, we set "n" (number) greater than what we have (170).
-# Otherwise, the data frame will only include the first 100 texts.
-micusp_summary <- as.data.frame(summary(micusp_corpus, n=200))
-
-# Check the result.
-View(micusp_summary)
-
-# As did in "text_intro.R", we can return the total word count using "sum".
-sum(micusp_summary$Tokens)
-
-# We can also get a token count by discipline.
-# There are a number of ways of doing this, but one is simply to specify an additional attribute.
-# Here we are specifying values in the "Discipline" column.
-sum(micusp_summary$Tokens[micusp_summary$Discipline == "BIO"])
-
-# Or we can use the aggregate function to sum "Tokens" by the "Discipline" variable.
-aggregate(Tokens ~ Discipline, micusp_summary, sum)
 
 # Similarly, we could calculate the average number of tokens per sentence.
-# Here we divide the sum of the "Tokens" column by the sum of the "Sentences" column.
-sum(micusp_summary$Tokens)/sum(micusp_summary$Sentences)
+# To do this, we will need to tokenize twice - first by splitting the text into sentences, and then by splitting those setnences into tokens
 
-# What if we wanted to calculate other information, like the type-to-token ratios for each document?
-# For that, we can just create our own, very simple function, which we name "simple_ratio".
-# This is almost identical to the functions we wrote in "text_intro.R".
-# However, note that we're requiring 2 arguments -- "x" and "y".
-simple_ratio <- function(x,y){
-  ratio <- x/y
-  ratio <- round(ratio, 2)
-  return(ratio)}
+micusp_sentences <- micusp_corpus %>% 
+  unnest_tokens(output = sentence, input = text, token = "sentences") %>% 
+  # We'll create an intermediate "sentence_id" just by adding a row_number column
+  mutate(sentence_id = row_number())
 
-# Now we want to iterate through our data row by row. We want to "apply" the function.
-# Again, just as we did in "text_intro.R", we'll use "mapply".
-TypeToken <- mapply(simple_ratio, micusp_summary$Types, micusp_summary$Tokens)
+micusp_sentences
 
-# The resulting vector we can easily append to our "micusp_summary" data frame.
-micusp_summary$TypeToken <- TypeToken
+micusp_sentences_word_counts <- micusp_sentences %>% 
+  unnest_tokens(output = word, input = sentence, token = "words") %>% 
+  count(doc_id, discipline, sentence_id)
 
-# Check the result.
-View(micusp_summary)
+# To get the average words per sentence, we'll use dplyr's most powerful features, group_by() and summarize(), which are almost always used hand in hand. 
+# group_by specifies how you will group the data frame, and then summarize will compress the data frame to one row per unique combination of all the variables in group_by, and then add the results of whatever summary functions you pass to it.
+micusp_document_averages <- micusp_sentences_word_counts %>% 
+  # First we choose which variables we want to group by (in this case, doc_id and discipline)...
+  group_by(doc_id, discipline) %>% 
+  # And then we state how we want to summarize (or collapse) the other data. Calling mean() will return 1 number based on all the values per group in n
+  summarize(avg_words_per_sentence = mean(n))
+micusp_document_averages
+
+# IF we wanted to get the averge words per sentence based on discipline, we'd group only by discipline isntead
+micusp_discipline_averages <- micusp_sentences_word_counts %>% 
+  group_by(discipline) %>% 
+  summarize(avg_words_per_sentence = mean(n)) %>% 
+  arrange(desc(avg_words_per_sentence))
+
+micusp_discipline_averages
+
+# CHALLENGE Calculate a type-token ratio for each document in the corpus. hint:
+# if you have a column of the unique token counts for each document, you can
+# divide them by the sum of those counts by calling n() / sum(n) inside
+# summarize (this will get the size of the group using n(), then divide by the
+# total sum of the word counts)
+
+discipline_ttr <- tokenized_micusp_corpus %>% 
+  count(doc_id, discipline, word) %>% 
+  group_by(doc_id, discipline) %>% 
+  summarize(ttr = n() / sum(n)) %>% 
+  ungroup() %>% 
+  mutate_at(vars(discipline), as.factor)
+
+ranked_discipline_ttr <- discipline_ttr %>% 
+  mutate(ranked_discipline = fct_reorder(discipline, .x = ttr, .fun = median))
+
+ggplot(ranked_discipline_ttr, aes(x = ranked_discipline, y = ttr)) + geom_boxplot()
 
 # Let's create a basic boxplot.
 # We'll specify the data frame we're using ("micusp_summary").
@@ -171,8 +166,7 @@ View(micusp_summary)
 # This tells R that more functions are to come, even though there is a closed parenthesis
 # The plot will appear in your "Plots" space on the bottom right.
 ggplot(micusp_summary, aes(x=Discipline, y=TypeToken)) + 
-  geom_boxplot() +
-  theme_minimal()
+  geom_boxplot()
 
 # Note the ordering along the x-axis is by alphabetical order in our first plot.
 # Let's recreate the plot, but this time using "reorder" to arrange the x-axis.

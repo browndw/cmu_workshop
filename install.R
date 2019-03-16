@@ -1,0 +1,1 @@
+install.packages(c("quanteda", "tidyverse", "tidytext", "readtext"))
