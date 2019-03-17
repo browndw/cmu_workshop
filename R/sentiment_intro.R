@@ -1,28 +1,26 @@
-
-library(syuzhet)
-library(ggplot2)
-
-# Run this line if you have a Mac OS to set your working directory to the "wf_workshop" folder.
-setwd("~/Documents/wf_workshop")
-
-# Run this line if you have a Windows OS to set your working directory to the "wf_workshop" folder.
-setwd("~/wf_workshop")
+library(tidyverse)
+library(tidytext)
 
 # First, we need to read in the text.
-frankenstein <- get_text_as_string("data/literature/Shelley_Frankenstein.txt")
+frankenstein <- read_lines("data/literature/Shelley_Frankenstein.txt") %>% 
+  paste(collapse = " ") %>% 
+  enframe(name = "doc_id", value = "text")
 
 # Next we need to parse the text into sentences.
-frankenstein_v <- get_sentences(frankenstein)
+frankenstein_v <- unnest_tokens(frankenstein, output = sentence, input = text, token = "sentences") %>% 
+  mutate(sentence_index = row_number()) %>% 
+  unnest_tokens(output = word, input = sentence, token = "words") %>% 
+  mutate(
+    word_index = row_number(),
+    progress = word_index / n()) %>% 
+  left_join(get_sentiments("bing"), by = "word") %>% 
+  left_join(get_sentiments("afinn"), by = "word")
+
+ggplot(frankenstein_v, aes(x = progress, y = score)) +
+  geom_smooth(method = "loess", span = 0.4)
 
 # Then we calculate a sentiment value for each sentence using the "get_sentiment" function.
 frankenstein_sentiment <- get_sentiment(frankenstein_v)
-
-# Now run these 3 lines together to write a plot to the "output" folder.
-# The plot measures sentiment from 1 (positive) to -1 (negative) along the y-axis.
-# And narrative time along the x-axis (by sentence in the first plot and by normalized time in the second).
-png(filename = "output/frankenstein_sentiment_simple.png", width = 7, height = 7, units = "in", res = 300)
-simple_plot(frankenstein_sentiment)
-dev.off()
 
 # The plot we generated above shows a trajectory that has been smoothed to eliminate some of the noise in the raw data.
 # To access those values, we need to use the "get_dct_transform" function -- a discrete cosine transformation.
@@ -184,3 +182,26 @@ emotions_compare
 
 # And save it to our "output" folder.
 ggsave("output/frankenstein_compare_nrc.png", plot=emotions_compare, width=8, height=4, dpi=300)
+
+
+text_paths <- dir("data/literature", pattern = "*.txt", recursive = TRUE, full.names = TRUE)
+full_texts <- vapply(text_paths, function(x) paste(readLines(x), collapse = " "), FUN.VALUE = character(1))
+text_names <- basename(text_paths)
+
+literature <- tibble(doc_id = text_names, text = full_texts)
+
+lit_tokens <- literature %>% 
+  unnest_tokens(input = text, output = sentence, token = "sentences") %>% 
+  group_by(doc_id) %>% 
+  mutate(sentence_index = row_number() / n()) %>% 
+  ungroup() %>% 
+  unnest_tokens(input = sentence, output = word, token = "words") %>% 
+  group_by(doc_id) %>% 
+  mutate(word_index = row_number() / n()) %>% 
+  ungroup() %>% 
+  inner_join(get_sentiments("nrc"), by = "word")
+
+lit_tokens %>% 
+  filter(!is.na(sentiment)) %>% 
+  ggplot(aes(x = doc_id, fill = sentiment)) + 
+  geom_bar(position = "fill")
