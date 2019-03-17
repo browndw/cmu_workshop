@@ -1,10 +1,4 @@
 
-# Run this line if you have a Mac OS to set your working directory to the "wf_workshop" folder.
-setwd("~/Documents/wf_workshop")
-
-# Run this line if you have a Windows OS to set your working directory to the "wf_workshop" folder.
-setwd("~/wf_workshop")
-
 # Let's begin by creating an object consisting of a character string.
 # In this case, the first sentence from Sense and Sensibility.
 text <- ("It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.")
