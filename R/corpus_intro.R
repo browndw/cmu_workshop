@@ -4,11 +4,6 @@ library(readtext)
 library(quanteda)
 library(ggplot2)
 
-# Run this line if you have a Mac OS to set your working directory to the "wf_workshop" folder.
-setwd("~/Documents/wf_workshop")
-
-# Run this line if you have a Windows OS to set your working directory to the "wf_workshop" folder.
-setwd("~/wf_workshop")
 
 # The first thing we are going to do is gather a list of files that we want to load into our corpus.
 # We could point the "readtext" function to a our "academic" directory, so why do it this way?
