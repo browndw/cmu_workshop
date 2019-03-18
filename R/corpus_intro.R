@@ -48,24 +48,6 @@ textstat_frequency(micusp_dfm, n=10)
 # We can also coerce those frequency counts into a data frame.
 micusp_counts <- as.data.frame(textstat_frequency(micusp_dfm))
 
-# We can also calculate a normalized frequency just as we did in "text_intro.R".
-# First we calculate and store the total number of words in our corpus.
-total_words <- sum(micusp_counts$frequency)
-
-# We can use the same "normalize" function.
-# Though this one normalizes per 1 million words.
-normalize <- function (x) { 
-  normal <- (x/total_words)*1000000
-  normal <- round(normal, 2)
-  return(normal)
-}
-
-# Use "mapply" to iterate down the frequency column.
-frequency_norm <- mapply(normalize, micusp_counts$frequency)
-
-# Append the result to our data frame.
-micusp_counts$frequency_norm <- frequency_norm
-
 # Check the result.
 View(micusp_counts)
 
