@@ -1,14 +1,27 @@
+# library() loads an R library - sets of functions that we'll want to use during
+# this session.
+#
+# quanteda is a large package with text analysis functions (FYI it can be a bit
+# slow to load the first time!)
+#
+# ggplot2 is another popular package with data visualization functions
+
 library(quanteda)
 library(ggplot2)
 
-# Let's begin by creating an object consisting of a character string.
-# In this case, the first sentence from Sense and Sensibility.
-text <- ("It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.")
+# Let's begin by creating an object consisting of a character string. In this
+# case, the first sentence from _Sense and Sensibility_.
+text <- "It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife."
 
-# Using "summary" we can access the object's ("text") values.
-summary(text)
+# the <- stores the data into an object called "text" that will live in our
+# "environment"
 
-# We can also call up the object itself.
+# Using the "class" function we can access the object's attributes (aka what
+# KIND of object it is)
+class(text)
+
+# By just running the bare name of the object, we can also call up the values
+# stored in the object itself (aka what's IN the object)
 text
 
 # From our text we can create our corpus object by using the "corpus" function.
@@ -17,73 +30,132 @@ small_corpus <- corpus(text)
 # Let's look at a summary of our corpus.
 summary(small_corpus)
 
-# The first column shows the ids of all the texts in our coprus.
-# Here, we only have 1, so our text has been assigned "text1" as an id.
-# Ids are very important as they link any meta data we may have about our texts with tokens counts; we see more of how this works in our next workshop.
-# The next column show the number of unique tokens we have in our corpus and the next the total number of tokens.
-# As an experiment, count the total number of works in our corpus... Why does this show 26 instead of 23?
-# So as a next step, we need to "tokenize" the corpus; we need to define what we want to count.
-# In this case, we tell it to remove punctuation.
-small_tokens <- small_corpus %>% tokens(remove_punct = TRUE, what = "word")
+# The first column shows the ids of all the texts in our coprus. Here, we only
+# have 1, so our text has been assigned "text1" as an id. Ids are very important
+# as they link any meta data we may have about our texts with the textual data
+# itself; we will see more of how this works in our next workshop.
+#
+# The next column shows the number of types we have in our corpus, that is,
+# unique tokens (bits of text that aren't spaces) and the next shows the TOTAL
+# number of tokens.
 
-# Now check the summary.
+# Count the total number of words in text by hand.
+
+# Why might our corpus list 26 "tokens" instead of 23?
+
+# So as a next step, we need to "tokenize" the corpus; we need to customize
+# exactly how we want quanteda to count tokens by using the tokens() function.
+#
+# tokens() takes our corpus, and then takes additional arguments that customize
+# what it does. We'll tell it to tokenize by individual word, and to remove
+# punctuation.
+small_tokens <- tokens(small_corpus, what = "word", remove_punct = TRUE)
+
+# Now look at the results
+small_tokens
+
 summary(small_tokens)
 
-# To learn more about the "tokens" function, we can put a question mark in front of the function name and run the line.
+# To learn more about the "tokens" function and its other optional arguments, we
+# can put a question mark in front of the function name and run the line.
 ?tokens
 
-# Note all of the choices that are available to us.
-# Would we want to count a stirng like "fast-paced" as one token or two?
-# If we wanted the latter, we would set "remove_hypens" to "TRUE": tokens(remove_punct = TRUE, remove_hypens = TRUE, what = "word")
-# Note, too, that we can tokenize for sequences or "ngrams".
-# Let's make an object containing 2-word sequences, or bigrams
-bi_grams <- small_corpus %>% tokens(remove_punct = TRUE, what = "word", ngrams = 2)
+# Note, that we can tokenize for multi-word sequences or "ngrams". Let's
+# make an object containing 2-word sequences, or bigrams
+bi_grams <- tokens(small_corpus, what = "word", remove_punct = TRUE, ngrams = 2)
 
 # View the object
 bi_grams
 
-# Now try to create an object containing 3-word sequences or trigrams on your own.
+# Now try to create an object containing 3-word sequences, or trigrams
 
 ### YOUR CODE HERE
 
-# With our tokens object we can now create a document-feature-matrix using the "dfm" function.
-# A dfm is a data structure from which we can build "bag-of-words" statistical analyses.
+# With our tokens object we can now create a document-feature-matrix using the
+# "dfm" function. A dfm is grid with one row per document in the corpus, and one
+# column per unique "token" in the corpus. Each cell contains a count of how
+# many times a token shows up in that document.
+#
+# A DFM is a commonly-used data structure for statistical analyses that look at
+# word/ngram counts. We'll do basic operations with it in this workshop, and
+# progress to more complex analyses in the next workshop.
 small_dfm <- dfm(small_tokens)
+small_dfm
 
-# Let's look at the 10 most frequent words in "small_dfm" by calling "textstat_frequency".
-textstat_frequency(small_dfm, n=10)
+# Check that that this dfm has one row
+nrow(small_dfm)
 
-# Now try to create a dfm of the bigrams on your own and check the 10 most frequent bigrams.
+# How many columns (aka unique tokens) does it have?
+ncol(small_dfm)
+
+# The textstat_frequency() function gives us the frequency of each term in the
+# corpus
+textstat_frequency(small_dfm)
+
+# Now try to create a dfm of the bigrams on your own and check the most frequent bigrams.
 
 ### YOUR CODE HERE
 
 # Quick intro to plotting ----
 
-# We'll be doing more plotting in the next workshop, but we'll finish this intro with the most basic plot: a bar plot.
-# But first we need to create data to plot and put it in a format that our plotting package (ggplot2) likes.
-# To do that, we'll put our word frquencies into a "data.frame"
-
-token_counts <- as.data.frame(textstat_frequency(small_dfm))
+# We'll be doing more plotting in the next workshop, but we'll finish this intro
+# with the most basic plot: a bar plot.
+#
+# ggplot works with data frames, that is, tables with rows and columns. The
+# output of textstat_frequency is already a data.frame, so lets save it to a new
+# object:
+token_counts <- textstat_frequency(small_dfm)
 
 # Let's look at what we've created.
 View(token_counts)
 
-# ggplot() takes a data frame, and then uses aes() (for "aesthetics") to specify which columns should be mapped to which visual variables. Once you specify this base, you then use the + sign to add at least one geom_ layer (for "geometry") which specifies which way you want to render the aesthethics you specified.
+# ggplot() takes a data frame, and then uses aes() (for "aesthetics") to specify
+# which columns should be mapped to which visual variables, such as x, y, color,
+# fill, alpha (transparency), etc.
+#
+# Once you specify this base, you then use the + sign to add at least one geom_
+# layer (for "geometry") which specifies which way you want to render the
+# aesthethics you specified. For example, geom_col renders x and y as bars of
+# different heights, while geom_point would render x and y as points in space
+#
+# As we add additional layers, scales, or theme modifications onto this plot,
+# we'll keep using +
 
-ggplot(token_counts, aes(x = feature, y = frequency)) + # Our graph will be very basic - we just want to plot the frequency of each word along the x-axis
-  geom_col() # And we will use a bar plot to do this.
+# Our graph will be very basic - we just want to plot the frequency of each
+# word, with words on the x axis and the frequency of each word on the y axis
+ggplot(token_counts, aes(x = feature, y = frequency)) + 
+  geom_col()
 
-# This looks a bit ugly to start out with, because our x axis values are whole words. ggplot allows a LOT of visual customization, but for now we'll just use coord_flip() to flip the axes and display the labels more comfortably
-
+# This looks a bit ugly to start out with, because our x axis values are whole
+# words that don't easily fit on the horizontal axis. ggplot allows a LOT of
+# visual customization, but for now we'll just use coord_flip() to flip the axes
+# and display the labels more comfortably
 ggplot(token_counts, aes(x = feature, y = frequency)) +
   geom_col() +
   coord_flip()
 
-# In this caese, we may want to rearrange our data so that the most frequently ocurring word comes first. We could do this on the underlying data, but since right now we just want to do this in the context of our plot, we'll do the reordering right inside the ggplot(aes()) call.
+# In this caese, we may want to rearrange our data so that the most frequently
+# ocurring word comes first. We could do this rearranging on the underlying
+# data, but since right now we just want to do this in the context of our plot,
+# we'll do the reordering right inside the ggplot(aes()) call.
+#
+# Reorder changes the ordering of the first variable you give it, ordering it
+# based on the second variable you give it
 ggplot(token_counts, aes(x = reorder(feature, frequency), y = frequency)) +
   geom_col() +
   coord_flip()
 
-# Earlier you counted all the bigrams in this text. Create a plot showing them in order:
+# Earlier you counted all the bigrams in this text. Create a plot showing them in order. Remember first you need to save the bigram counts from textstat_frequency to a new object, and then pass that object to ggplot
+
+ggplot(textstat_frequency(dfm(bi_grams)), aes(x = reorder(feature, frequency), y = frequency)) +
+  geom_col() +
+  coord_flip()
+
+### YOUR CODE HERE
+
+# So far we've only looked at words or word combinations. Using all we've
+# learned today, create a bar plot counting up the individual letters, a-z, used
+# in our original sentence. And see if you can change the fill of the bars to
+# match the character frequency...
 
 ### YOUR CODE HERE
