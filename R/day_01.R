@@ -43,8 +43,8 @@ summary(small_corpus)
 
 # Why might our corpus list 26 "tokens" instead of 23?
 
-# So as a next step, we need to "tokenize" the corpus; we need to customize
-# exactly how we want quanteda to count tokens by using the tokens() function.
+# So as a next step, we need to customize exactly how we want quanteda to count
+# tokens by using the tokens() function.
 #
 # tokens() takes our corpus, and then takes additional arguments that customize
 # what it does. We'll tell it to tokenize by individual word, and to remove
@@ -92,9 +92,18 @@ ncol(small_dfm)
 # corpus
 textstat_frequency(small_dfm)
 
-# Now try to create a dfm of the bigrams on your own and check the most frequent bigrams.
+# Now try to create a dfm of the bigrams on your own and check the most frequent
+# bigrams.
 
 ### YOUR CODE HERE
+
+# Overview so far ----
+
+# 1. bare text
+# 2. corpus()
+# 3. tokens()
+# 4. dfm()
+# 5. analysis (with e.g. textstat_frequency())
 
 # Quick intro to plotting ----
 
@@ -145,7 +154,9 @@ ggplot(token_counts, aes(x = reorder(feature, frequency), y = frequency)) +
   geom_col() +
   coord_flip()
 
-# Earlier you counted all the bigrams in this text. Create a plot showing them in order. Remember first you need to save the bigram counts from textstat_frequency to a new object, and then pass that object to ggplot
+# Earlier you counted all the bigrams in this text. Create a plot showing them
+# in order. Remember first you need to save the bigram counts from
+# textstat_frequency to a new object, and then pass that object to ggplot
 
 ggplot(textstat_frequency(dfm(bi_grams)), aes(x = reorder(feature, frequency), y = frequency)) +
   geom_col() +
@@ -155,7 +166,14 @@ ggplot(textstat_frequency(dfm(bi_grams)), aes(x = reorder(feature, frequency), y
 
 # So far we've only looked at words or word combinations. Using all we've
 # learned today, create a bar plot counting up the individual letters, a-z, used
-# in our original sentence. And see if you can change the fill of the bars to
-# match the character frequency...
+# in our original sentence.
 
 ### YOUR CODE HERE
+
+# Bonus: see if you can make the "fill" color for each bar change based on its
+# frequency
+
+# LEARN MORE ABOUT GGPLOT2 (including cheat sheets and links to other resources
+# at various levels of depth and difficulty):
+#
+# https://ggplot2.tidyverse.org/
