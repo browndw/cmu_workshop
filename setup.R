@@ -5,4 +5,4 @@
 # for you
 
 install.packages(c("tidyverse", "quanteda", "ggrepel"))
-devtools::install_github("rlib/rematch2")
+devtools::install_github("r-lib/rematch2")
