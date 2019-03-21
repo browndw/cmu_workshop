@@ -158,10 +158,6 @@ ggplot(token_counts, aes(x = reorder(feature, frequency), y = frequency)) +
 # in order. Remember first you need to save the bigram counts from
 # textstat_frequency to a new object, and then pass that object to ggplot
 
-ggplot(textstat_frequency(dfm(bi_grams)), aes(x = reorder(feature, frequency), y = frequency)) +
-  geom_col() +
-  coord_flip()
-
 ### YOUR CODE HERE
 
 # So far we've only looked at words or word combinations. Using all we've
