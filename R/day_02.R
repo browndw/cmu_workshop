@@ -203,6 +203,7 @@ head(textstat_keyness(micusp_dfm, docvars(micusp_dfm, "paper_type") == "Report",
 
 ### YOUR CODE HERE
 
+# Still working on this, but these at least are the basic steps...
 head(kwic(micusp_corpus, "data", window = 3, valuetype = "fixed"), 10)
 
 head(kwic(micusp_corpus, "suggest*", window = 3, valuetype = "glob"), 10)
