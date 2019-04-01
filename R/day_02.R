@@ -203,19 +203,90 @@ head(textstat_keyness(micusp_dfm, docvars(micusp_dfm, "paper_type") == "Report",
 
 ### YOUR CODE HERE
 
-# Still working on this, but these at least are the basic steps...
+# In addition to conducting different kinds of statistical tests,
+# we may also want to see some of the context in which tokens appear.
+# These contextual presentations of tokens are called
+# key words in contexts (KWIC).
+# To generate them in quanteda, we can use the kwic() function.
+# We can operate this function on either a tokens object or a corpus object.
+# Remember, that when we tokenized our corpus, we removed
+# numbers, symbols and punctuation. So if we want to see those,
+# We should use our corpus object with the function.
+# Also note that we can specify a window size.
+# The window is the span of tokens to left and right of our
+# search token that we want to see.
+
+# In these examples, note the difference btween a "fixed" search
+# and a "glob" search. We can also use regular expressions with "regex".
+
 head(kwic(micusp_corpus, "data", window = 3, valuetype = "fixed"), 10)
 
 head(kwic(micusp_corpus, "suggest*", window = 3, valuetype = "glob"), 10)
 
-hb_dict <- dictionary(file = "/lists/hedges_boosters.yml")
+# Finally, we're going to see how we can use a simple dictionary to
+# group our tokens into classes that we can then count.
+# The first step is to load in our dictionary.
+# The dictionary that we're using is in what is called YAML --
+# short for "YAML Ain't Markup Language".
+# YAML is very friendly to human readers and very easy to format.
+# You can look at the example if you wish.
+# This one has list of words and phrases grouped under "hedges"
+# and another under "boosters".
+# To load it, we use the dictionary() function.
+hb_dict <- dictionary(file = "/Users/davidwestbrown/SpiderOak Hive/CMU/CMU Workshop/lists/hedges_boosters.yml")
+
+# Next we create a new tokens object from our original one.
+# By using tokens_lookup() with our dicitonary, we will create
+# groupings based on our dictionary.
+# Note that our dictionary has only 1 level.
+# But if we can a more complex taxonomy, we can specify
+# which level of the taxonomy we'd like to group our tokens under.
 hb_toks <- tokens_lookup(micusp_tokens, hb_dict, levels = 1)
+
+# Now we create a new document features matrix.
+# And we're going to convert it to a data frame that we can use later.
 hb_dfm <- dfm(hb_toks)
+hb_dfm <- convert(hb_dfm, to = "data.frame")
+
+
+# Check the frequencies.
 textstat_frequency(hb_dfm)
+
+# Try out keyness using "Proposals" as our target.
 textstat_keyness(hb_dfm, docvars(hb_dfm, "paper_type") == "Proposal", measure = "lr")
 
-training_class <- factor(doc_categories$paper_type)
-t_mod <- textmodel_nb(micusp_dfm, y = training_class, prior = "docfreq")
-micusp_pred <- predict(t_mod)
+# If we wanted to plot hedges vs. boosters, however,
+# we would first need to normalize our counts -- 
+# by total counts of tokens or sentences in each text.
+# This information can be retrieved easily from our tokens and corpus.
+ntoken(micusp_tokens)
+nsentence(micusp_corpus)
 
-caret::confusionMatrix(micusp_pred, training_class)
+# Let's store both of those first.
+tokens_total <- ntoken(micusp_tokens)
+sentences_total <- nsentence(micusp_corpus)
+
+# Next, we can  create our own, very simple function, which we name "simple_ratio".
+# Our function requires two arguments -- x and y.
+# The fuction itself is contain betwen the curly brackets.
+# It divides x by y, rounds it to 5 decimal places, and returns it.
+simple_ratio <- function(x,y){
+  ratio <- x/y
+  ratio <- round(ratio, 5)
+  return(ratio)}
+
+# Now we're going to apply the function to the hedges column
+# in our hb_dfm and to our tokens_total.
+hedges_norm <- mapply(simple_ratio, hb_dfm$hedges, tokens_total)
+boosters_norm <- mapply(simple_ratio, hb_dfm$boosters, tokens_total)
+
+# How would you normalize by the total number of sentences instead?
+
+### YOUR CODE HERE
+
+# We now append these results to our hb_dfm in columns called "hedges_norm" and "boosters_norm".
+hb_dfm$hedges_norm <- hedges_norm
+hb_dfm$boosters_norm <- boosters_norm
+
+ggplot(hb_dfm, aes(x = hedges_norm, y = boosters_norm)) +
+  geom_point()
