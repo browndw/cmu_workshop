@@ -9,7 +9,7 @@ readtext_lite <- function(paths) {
   # vector
   texts <- vapply(paths, function(i) paste(readLines(i), collapse = "\n"), 
                   FUN.VALUE = character(1))
-  text_df <- data.frame(doc_id = doc_ids, text = texts)
+  text_df <- data.frame(doc_id = doc_ids, text = texts, stringsAsFactors = FALSE)
   return(text_df)
 }
 
