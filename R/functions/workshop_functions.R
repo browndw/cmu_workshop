@@ -1,24 +1,24 @@
+# Helper functions for the workshop
 
-
-readtext_lite <- function(x){
-  text_df <- lapply(x, function(i){
-    text <- readLines(i)
-    doc_id <- basename(i)
-    text <- paste(text, collapse = "\n")
-    doc <- data.frame(cbind(doc_id, text), stringsAsFactors = F)
-  })
-  text_df <- do.call("rbind", text_df)
+# Replaces the readtext::readtext function that reads a lists of text files into
+# a data frame
+readtext_lite <- function(paths) {
+  # Get a vector of the file basenames
+  doc_ids <- basename(paths)
+  # Create a vector collapsing each text file into one element in a character
+  # vector
+  texts <- vapply(paths, function(i) paste(readLines(i), collapse = "\n"), 
+                  FUN.VALUE = character(1))
+  text_df <- data.frame(doc_id = doc_ids, text = texts)
   return(text_df)
 }
 
-effect_size <- function (x) {
-  total_a <- sum(x$n_target)
-  total_b <- sum(x$n_reference)
-  mapply(function (frequency_a, frequency_b) { 
-  percent_a <- if(frequency_a == 0) (.5/total_a) else (frequency_a/total_a)
-  percent_b <- if(frequency_b == 0) (.5/total_b) else (frequency_b/total_b)
-  ratio <- log2(percent_a/percent_b)
-  ratio <- round(ratio, 2)
+# Take a target column and a reference column, and return an effect size
+effect_size <- function (n_target, n_reference) {
+  total_a <- sum(n_target)
+  total_b <- sum(n_reference)
+  percent_a <- ifelse(n_target == 0, 0.5 / total_a, n_target/total_a)
+  percent_b <- ifelse(n_reference == 0, 0.5 / total_b, n_reference/total_b)
+  ratio <- log2(percent_a / percent_b)
   return(ratio)
-}, x$n_target, x$n_reference)
 }
