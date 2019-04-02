@@ -2,9 +2,25 @@
 # that we practiced in the first workshop. However, today we'll be working with
 # many texts rather than a single sentence (or string).
 #
-# We're also going to add to our toolbox by learning how to lists and dictionaries,
-# which can help us control what we want to define as a "token" and what we analyze
-# by group tokens into categories that we can count.
+# In this lesson you will learn:
+#
+# New functions for manipulating data.frames
+# - select()
+# - mutate()
+# - filter()
+# - arrange()
+# - min_rank()
+# - slice()
+#
+# New functions for text tokenization and analytics
+# - tokens_compound()
+# - textstat_keyness()
+#
+# Methods for multivariable data visualization
+# - grouping by color
+# - grouping by facets / small-multiples
+# - 2D scatterplots
+# - Text labels
 #
 # We'll begin, just as we did in the the first workshop.
 #
@@ -14,11 +30,13 @@
 # quanteda is a large package with text analysis functions (FYI it can be a bit
 # slow to load the first time!)
 #
-# ggplot2 is another popular package with data visualization functions
+# tidyverse contains functions for manipulating data frames, and also includes
+# the entire ggplot2 library for visualizing data frames
 
 library(quanteda)
 library(tidyverse)
 
+# Reading in large corpora ----
 
 # If you are working locally on your own maching, rather than through the web
 # interface, you can also install the readtext package, which assists in loading
@@ -49,17 +67,15 @@ micusp_meta <- read_csv("data/academic/MICUSP_meta.csv")
 # You can find out more about MICUSP at http://elicorpora.info/
 View(micusp_meta)
 
-# Next we are going to select a subset of categorical variables from the metadata,
-# which we will want to attach to and use with our corpus.
-# The variables we want are in the 6th through the 10th columns.
-# To subset those columns, we use square brackets after the name of our data frame ("micusp_meta").
-# Between the brackets, there is a comma. To the left of the comma we can define what rows we want.
-# To the right of the column we can define the columns.
-# For example, micusp_meta[1,1] would return the first row and the first column: BIO.G0.02.1
-# As we want all rows, we leave the left side of the comma blank.
-# To the right, we put 6:10, which returns columns 6 through 10.
-# We'll name our new data frame "doc_categories".
-doc_categories <- micusp_meta[,6:10]
+# If you ever need to quickly peek at the column names of a data frame, use colnames
+colnames(micusp_meta)
+
+# Next we are going to select a subset of categorical variables from the
+# metadata, which we will want to attach to and use with our corpus. The
+# select() function takes a data.frame and then one or more column names to
+# keep. We'll name our new data frame "doc_categories".
+doc_categories <- micusp_meta %>% 
+  select(discipline_cat, level_cat, student_gender, speaker_status, paper_type, paper_features)
 
 # In our new data frame, you find the following information:
 # a three letter code for each discipline (discipline_cat),
@@ -68,8 +84,9 @@ doc_categories <- micusp_meta[,6:10]
 # and a code for whether student writer identefies as a native or non-native speaker of English (speaker_status).
 View(doc_categories)
 
-# Because we have 170 text files to load into our corpus, we need to first read them into a data frame.
-# To do this, you can use the readtext package or the lite function that we've already loaded into our environment.
+# Because we have 170 text files to load into our corpus, we need to first read
+# them into a data frame. To do this, you can use the readtext package or the
+# lite function that we've already loaded into our environment.
 doc_df <- readtext_lite(micusp_meta$file_path)
 
 # Our data frame (doc_df) has just two columns: doc_id and text.
@@ -113,14 +130,14 @@ micusp_tokens <- tokens(micusp_corpus, include_docvars=TRUE, remove_punct = TRUE
 #
 # First, we need to load in a list of our expressions. Using readLines(), we
 # load in a text file containing a multi-word expression on each line.
-multiword <- readLines("data/stoplists//mwe_short.txt")
+multiword_expressions <- readLines("data/stoplists/mwe_short.txt")
 
 # This creates a character vector; in other words, multiple string values.
-multiword
+multiword_expressions
 
 # The tokens_compound() functions looks for token sequences that match our list
 # and combines them using an underscore.
-micusp_tokens <- tokens_compound(micusp_tokens, pattern = phrase(multiword))
+micusp_tokens <- tokens_compound(micusp_tokens, pattern = phrase(multiword_expressions))
 
 # In the first workshop, we learned about the pipe %>% operator that chains
 # together multiple functions. Starting from the micusp_corpus, create the
@@ -159,7 +176,7 @@ topfeatures(micusp_dfm, groups = "discipline_cat")
 
 ### YOUR CODE HERE
 
-# We can also store word frequencies using textstat_frequency()
+# We can also store full frequencies for all words using textstat_frequency()
 # either for the whole corpus -- textstat_frequency(micusp_dfm)
 # or with a grouping variable -- textstat_frequency(micusp_dfm, groups = "discipline_cat").
 word_freq <- textstat_frequency(micusp_dfm)
@@ -170,9 +187,25 @@ View(word_freq)
 # Now collect the word frequencies grouped by discipline
 word_freq_discipline <- textstat_frequency(micusp_dfm, groups = "discipline_cat")
 
+# Now we have one row per word/group combination.
+
 # Visualizing with groups
+
+# Often we need to filter our data down a bit in order to plot it. A bar chart
+# with 7000 bars isn't very legible. So let's keep just the top 10 words
+#
+# filter() takes a data frame and then a series of rules based on values in that
+# data frame's columns. To get only the rows where the "rank" of a word is
+# greater than or equal to 10:
 top_word_freqs <- word_freq_discipline %>% 
-  filter(rank <= 6)
+  filter(rank <= 10)
+
+# filter() statements can be as complex as you need them to be. Keep only the
+# top 10 words in "English":
+top_english_freqs <- word_freq_discipline %>% 
+  filter(rank <= 10 & group == "English") # Note that we use == to mean "is this equal?"
+
+## Visualizing with groups ----
 
 # If we only give it the feature and frequency, ggplot will add everything up for us.
 ggplot(top_word_freqs, aes(x = feature, y = frequency)) +
@@ -183,17 +216,26 @@ ggplot(top_word_freqs, aes(x = feature, y = frequency)) +
 ggplot(top_word_freqs, aes(x = feature, y = frequency, fill = group)) +
   geom_col()
 
-# Another is to make "small multiples" by what ggplot calls "faceting"
+# the default way to position columns subdivided with fill colors isn't always
+# very useful. Experiment by using geom_col(position = "dodge") and
+# geom_col(position = "fill"). How does position = "fill" transform what the
+# y-axis measures?
+
+### YOUR CODE HERE
+
+# Another is to make "small multiples" by what ggplot calls "faceting". This is
+# most useful when you'd like to make one graph per facet group:
 ggplot(top_word_freqs, aes(x = feature, y = frequency)) +
   geom_col() +
   facet_wrap(~ group)
 
-# We can still stack on additional modifiers like flipping coordinates, and
-# ggplot almost always knows what to do
-ggplot(top_word_freqs, aes(x = group, y = frequency)) +
-  geom_col() +
-  facet_wrap(~ feature) +
-  coord_flip()
+# We can still stack on additional modifiers that we learned last time, like
+# flipping coordinates with coord_flip()
+
+### YOUR CODE HERE
+
+# Based on these plots, what are the drawbacks of trying to compare these
+# categories by looking at raw feature frequencies?
 
 # Overview so far ----
 
@@ -202,6 +244,8 @@ ggplot(top_word_freqs, aes(x = group, y = frequency)) +
 # 3. tokens()
 # 4. dfm()
 # 5. analysis (with e.g. textstat_frequency())
+
+# Keyness ----
 
 # If you've done any corpus analysis previously, you'll know
 # that word frequencies by themselves don't usually get us very far.
@@ -223,37 +267,155 @@ ggplot(top_word_freqs, aes(x = group, y = frequency)) +
 # For example, we can find which texts in our corpus were written
 # by female-identifying sudents using two equal signs indicating
 # that we want the student_gender variable where it is "F".
-docvars(micusp_dfm, "student_gender") == "F"
+student_f_index <- docvars(micusp_dfm, "student_gender") == "F"
 
-# We we use it with textstat_keyness we are indicating that we want
-# the papers with student_gender equal to "F" to be our target corpus.
-# All other papers will be the reference corpus.
-# The specific method we're using is log-likelihood, which is designated by "lr".
-# In this case MICUSP only provides one other category for student_gender: "M".
-# Thus keyness will show the tokens that are more frequent in papers by
+# This creates a "logical" or "boolean" vector of TRUE/FALSE values. R often
+# uses these kinds of indices when you are trying to tell it to look at a subset
+# of some data
+student_f_index
+
+# We we use it with textstat_keyness we are indicating that we want the papers
+# with student_gender equal to "F" to be our target corpus. All other papers
+# will be the reference corpus.
+#
+# The specific method we're using is log-likelihood, which is designated by
+# "lr". In this case MICUSP only provides one other category for student_gender:
+# "M". Thus keyness will show the tokens that are more frequent in papers by
 # female-identifying writers vs. male-identifying writers.
-key_words <- textstat_keyness(micusp_dfm, docvars(micusp_dfm, "student_gender") == "F", measure = "lr")
+female_keywords <- textstat_keyness(micusp_dfm, student_f_index, measure = "lr")
 
 # Check the results.
-View(key_words)
+View(female_keywords)
 
-# It is important to that the keyness statistic is a measure of significance.
-# It tells us how much evidence we have for a difference in token frequencies.
-# But it tells us nothing about the magnitude of the effect.
-# For that we need to calculate an effect size.
+# It is important to that the keyness statistic is a measure of significance. It
+# tells us how much evidence we have for a difference in token frequencies. But
+# it tells us nothing about the magnitude of the effect. For that we need to
+# calculate an effect size.
 
-# The quanteda package does not have a function for effect sizes.
-# So we have created a simple function effect_size()
-# that calculates Hardie's Log Ratio: http://cass.lancs.ac.uk/log-ratio-an-informal-introduction/
-# This line adds a column called log_ratio to our key_words data table.
-key_words$log_ratio <- effect_size(key_words)
+# The quanteda package does not have a function for effect sizes. So we have
+# created a simple function effect_size() that calculates Hardie's Log Ratio:
+# http://cass.lancs.ac.uk/log-ratio-an-informal-introduction/
+#
+# This function takes two lists of numbers:
+# - n_target: The number of times that term shows up in the target category
+# - n_reference: The number of times that term shows up in all other categories
 
-# If we simply want to view a limited number of results we can use head().
+# You can access any column of a data.frame by using $
+female_keywords$n_target
+
+# And this vector of numbers is what we pass into the effect_size() function
+effect_size(female_keywords$n_target, female_keywords$n_reference)
+
+# A common way to compute new columns for a data frame based on values in existing columns is to use the mutate() function:
+# (We'll also use the %>% operator for readability)
+female_keywords <- female_keywords %>% 
+  # While we're inside muatate(), we don't have to repeat the data frame name or
+  # use $ - mutate() knows that we're trying to refer to other columns. "effect"
+  # will be the name of the new column, and its contents will be the output of
+  # effect_size()
+  mutate(effect = effect_size(n_target, n_reference)) 
+
+# Now see that we have a new effect column
+female_keywords
+
+# To reorder the data frame, we use arrange()
+key_words %>% 
+  arrange(effect)
+
+# To sort in descending order, wrap the variable name in desc()
+key_words %>% 
+  arrange(desc(effect))
+
+# What if we want to get the largest effect sizes, no matter whether positive or negative? We'd need to calculate the absolute value
+?abs
+
+# Add a column to key_words called abs_effect. You'll want to use mutate() and abs() in combination
+
+### YOUR CODE HERE
+
 # Here we can see the top ten keywords when the paper_type "Report" is the target.
-head(textstat_keyness(micusp_dfm, docvars(micusp_dfm, "paper_type") == "Report", 
-                      measure = "lr"), 10)
+report_keywords <- textstat_keyness(micusp_dfm, docvars(micusp_dfm, "paper_type") == "Report", 
+                      measure = "lr")
+
+report_keywords %>% 
+  mutate(effect = effect_size(n_target, n_reference)) %>% 
+  arrange(desc(effect))
 
 # Now try to examine the top 10 keywords when the paper_type is a Proposal.
+
+### YOUR CODE HERE
+
+english_keywords <- textstat_keyness(micusp_dfm, docvars(micusp_dfm, "discipline_cat") == "English", 
+                                    measure = "lr") %>% 
+  mutate(effect = effect_size(n_target, n_reference))
+
+biology_keywords <- textstat_keyness(micusp_dfm, docvars(micusp_dfm, "discipline_cat") == "Biology", 
+                                     measure = "lr") %>% 
+  mutate(effect = effect_size(n_target, n_reference)) 
+
+# To visualize the difference between these two datasets, it could help to make
+# a scatterplot of words arranged based on their relative effect size as
+# keywords for either set. To do this we'll need to make one table that has:
+  # - one row per word
+  # - columns for the English effect sizes and other stats
+  # - columns for hte Biology effect sizes and other stats
+  
+# left_join() is a function for combining two different data frames based on a
+# column with shared values. Both of these data frames will have rows in their
+# "feature" columns that are the same, so we will join on that column. The
+# "suffix" argument will add extra names to the shared, non-joining columns like
+# "effect_size" and "p" so that
+  
+comparison_stats <- english_keywords %>% 
+  left_join(biology_keywords, by = "feature", suffix = c("_eng", "_bio"))
+
+# Check the new column names of this table and we see that we have one "feature"
+# column and then the other table columns with added suffixes
+colnames(comparison_stats)
+
+significant_comparison_stats <- comparison_stats %>% 
+  # We'll want to do some filtering first - let's make sure each term we try to display shows up at least once in both of our categories
+  filter(n_target_eng > 1 & n_target_eng > 1) %>% 
+  # And we will create two summary variables - largest_effect, giving us a sense of the most powerful effect whether positive or negative, and smallest_p - which features have the smallest p for either 
+mutate(
+    average_effect = (abs(effect_eng) + abs(effect_bio)) / 2,
+    average_p = (p_eng + p_bio) / 2)
+
+ggplot(significant_comparison_stats, aes(x = effect_eng, y = effect_bio)) +
+  geom_point()
+
+# OK, this lays out things clearly enough. But points aren't that useful of a
+# geometry for us. We can use the words themselves! Notice we need to add an
+# extra argument to our aes() - geom_text takes x, y, as well as a label
+# argument
+ggplot(significant_comparison_stats, aes(x = effect_eng, y = effect_bio, label = feature)) +
+  geom_text()
+
+# That is... illegible. So let's go back up to our significant_comparison_stats
+# and filter more strictly. Revise the filter so that, in addition to filtering
+# on n_target, it also only keeps those where the p value for both English and
+# Biology is less than or equal to 0.05. Now run the plot again.
+
+### YOUR CODE HERE
+
+# We can take advantage of other aesthethics to refine this plot more. We can
+# size words based on their average effect size, and adjust their opacity based
+# on their p-values
+#
+# n.b. when a single line of code gets really long, R doesn't mind if you add in
+# line breaks between commas. This makes it more readable for human beings.
+ggplot(significant_comparison_stats, 
+       aes(x = effect_eng, y = effect_bio, label = feature, 
+           size = average_effect, alpha = average_p)) +
+  geom_text() +
+  # Note that smaller p-values are better, so we want to transform the alpha
+  # scale by reversing its usual defaults, so that smaller numbers are more
+  # opaque and larger numbers are more transparent.
+  scale_alpha(trans = "reverse") 
+
+# Another good addition would be horizontal and vertical lines centered on the 0-axes so we know when something goes from having e.g. a positive biology effect size to a negative one.
+# Add geom_hline(yintercept = 0)
+# Add geom_vline(xintercept = 0)
 
 ### YOUR CODE HERE
 
@@ -273,21 +435,35 @@ head(textstat_keyness(micusp_dfm, docvars(micusp_dfm, "paper_type") == "Report",
 # In these examples, note the difference btween a "fixed" search
 # and a "glob" search. We can also use regular expressions with "regex".
 
-head(kwic(micusp_corpus, "data", window = 3, valuetype = "fixed"), 10)
+kwic(micusp_corpus, "data", window = 3, valuetype = "fixed")
 
-head(kwic(micusp_corpus, "suggest*", window = 3, valuetype = "glob"), 10)
+kwic(micusp_corpus, "suggest*", window = 3, valuetype = "glob")
 
-# Finally, we're going to see how we can use a simple dictionary to
-# group our tokens into classes that we can then count.
-# The first step is to load in our dictionary.
-# The dictionary that we're using is in what is called YAML --
-# short for "YAML Ain't Markup Language".
-# YAML is very friendly to human readers and very easy to format.
-# You can look at the example if you wish.
-# This one has list of words and phrases grouped under "hedges"
-# and another under "boosters".
-# To load it, we use the dictionary() function.
-hb_dict <- dictionary(file = "/Users/davidwestbrown/SpiderOak Hive/CMU/CMU Workshop/lists/hedges_boosters.yml")
+# We can use kwic() to look at the context of the significant keywords we identified in the previous section. IF we want to just look at the English docs from the corpus, then we will first use corpus_subset() to only pull those docs.
+
+english_corpus <- corpus_subset(micusp_corpus, discipline_cat == "English")
+english_corpus
+
+kwic(english_corpus, "blood*", window = 4, valuetype = "glob")
+
+# Now look at blood in the context of biology
+
+### YOUR CODE HERE
+
+# What about the use of "novel"? "webster"? Try looking at terms that are strong
+# positive keywords for biology but negative for english, too.
+
+# Finally, we're going to see how we can use a simple dictionary to group our
+# tokens into classes that we can then count.
+#
+# The first step is to load in our dictionary. The dictionary that we're using
+# is in what is called YAML -- short for "YAML Ain't Markup Language". YAML is
+# very friendly to human readers and very easy to format.
+#
+# You can look at the example if you wish. This one has list of words and
+# phrases grouped under "hedges" and another under "boosters". To load it, we
+# use the dictionary() function.
+hb_dict <- dictionary(file = "data/stoplists/hedges_boosters.yml")
 
 # Next we create a new tokens object from our original one.
 # By using tokens_lookup() with our dicitonary, we will create
@@ -325,9 +501,9 @@ sentences_total <- nsentence(micusp_corpus)
 # The fuction itself is contain betwen the curly brackets.
 # It divides x by y, rounds it to 5 decimal places, and returns it.
 simple_ratio <- function(x,y){
-  ratio <- x/y
-  ratio <- round(ratio, 5)
-  return(ratio)}
+  ratio <- x / y
+  return(ratio)
+}
 
 # Now we're going to apply the function to the hedges column
 # in our hb_dfm and to our tokens_total.
