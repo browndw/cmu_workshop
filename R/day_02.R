@@ -17,27 +17,35 @@
 # ggplot2 is another popular package with data visualization functions
 
 library(quanteda)
-library(ggplot2)
+library(tidyverse)
 
-#library(readtext)
 
-# If you are working locally on your own maching, rather than through the web interface,
-# you can also install the readtext package, which assists in loading all of our texts
-# before creating our corpus. That package, like quanteda, is also somewhat large.
-# So we created our own helper function that does what we need it to do a little more efficiently.
-# We can load this an another function that we will use later by running the line below.
-source("/functions/workshop_functions.R")
+# If you are working locally on your own maching, rather than through the web
+# interface, you can also install the readtext package, which assists in loading
+# all of our texts
 
-# In your Environment on the upper-left, you will see two functions: effect_size and readtext_lite.
+# install.packages("readtext")
+# library(readtext)
+
+# Like quanteda, readtext is large and contains many functions we won't need to
+# use. So we created our own helper function that does what we need it to do a
+# little more efficiently. We can load this an another function that we will use
+# later by running the line below.
+source("R/functions/workshop_functions.R")
+
+# In your Environment on the upper-left, you will see two functions: effect_size
+# and readtext_lite.
 #
 # Now we are going to load file containing all of the metadata for our corpus.
-# For this, we use one of R's many read functions.
-# This one is a specific implementation for comma-separated-value (or csv) files.
-micusp_meta <- read.csv("/metadata/MICUSP_meta.csv", stringsAsFactors = FALSE)
+# For this, we use one of R's many read functions. This one is a specific
+# implementation for comma-separated-value (or csv) files.
+micusp_meta <- read_csv("data/academic/MICUSP_meta.csv")
 
-# We can view the file to see what kinds of information it contains.
-# The data comes from the Michigan Corpus of Upper-Level Student Papers (or MICUSP).
-# For the workshop, we've sampled 10 papers from each of the 17 disciplines represented in the corpus.
+# We can view the file to see what kinds of information it contains. The data
+# comes from the Michigan Corpus of Upper-Level Student Papers (or MICUSP). For
+# the workshop, we've sampled 10 papers from each of the 17 disciplines
+# represented in the corpus.
+#
 # You can find out more about MICUSP at http://elicorpora.info/
 View(micusp_meta)
 
@@ -76,13 +84,14 @@ summary(micusp_corpus)
 # we can assign them as "document variables" using docvars().
 ?docvars
 
-# So the first element of our argument will be the oject we want to assign the variable to: micusp_corpus.
-# The second will be the names of the fields we want to assign.
-# We can call them whatever we want. But we already have convenient names in our column headings.
-colnames(doc_categories)
-
-# To assign the names and the values, therefore, we simply execute the following.
-docvars(micusp_corpus, colnames(doc_categories)) <- doc_categories
+# The following command might look backwards, with the function on the left hand
+# side of the <- operator. That is because it's an accessor function, which lets
+# us add or modify data in an object. You can tell when a function is an
+# accessor function like this because its help file will show that you can use
+# it with <-, for example as we saw in ?docvars:
+#
+# docvars(x, field = NULL) <- value
+docvars(micusp_corpus) <- doc_categories
 
 # Now let's check our summary again.
 summary(micusp_corpus)
@@ -96,18 +105,32 @@ summary(micusp_corpus)
 micusp_tokens <- tokens(micusp_corpus, include_docvars=TRUE, remove_punct = TRUE,
                         remove_numbers = TRUE, remove_symbols = TRUE, what = "word")
 
-# An issue that we run into frequently with corpus analysis is what to do with multi-word expressions.
-# For example, consider a common English quantifier: "a lot".
-# Typical tokenization rules will split this into two tokens: "a" and "lot".
-# But counting "a lot" as a single unit would really be more accurate.
-# We have a way of telling quanteda to account for these tokens.
-# First, we need to load in a list of our expressions.
-# Using readLines(), we load in a text file containing a multi-word expression on each line.
-multiword <- readLines("/lists/mwe_short.txt")
+# An issue that we run into frequently with corpus analysis is what to do with
+# multi-word expressions. For example, consider a common English quantifier: "a
+# lot". Typical tokenization rules will split this into two tokens: "a" and
+# "lot". But counting "a lot" as a single unit would really be more accurate. We
+# have a way of telling quanteda to account for these tokens.
+#
+# First, we need to load in a list of our expressions. Using readLines(), we
+# load in a text file containing a multi-word expression on each line.
+multiword <- readLines("data/stoplists//mwe_short.txt")
+
+# This creates a character vector; in other words, multiple string values.
+multiword
 
 # The tokens_compound() functions looks for token sequences that match our list
 # and combines them using an underscore.
-micusp_tokens <- tokens_compound(micusp_tokens, phrase(multiword))
+micusp_tokens <- tokens_compound(micusp_tokens, pattern = phrase(multiword))
+
+# In the first workshop, we learned about the pipe %>% operator that chains
+# together multiple functions. Starting from the micusp_corpus, create the
+# micusp_tokens object using both the tokens() and tokens_compound() command
+
+### YOUR CODE HERE 
+
+# (hint:)
+# micusp_corpus %>% 
+#    tokens(...) %>% ...
 
 # With our tokens object we can now create a document-feature-matrix using the
 # "dfm" function. A dfm is grid with one row per document in the corpus, and one
@@ -121,8 +144,11 @@ micusp_dfm <- dfm(micusp_tokens)
 # One way to inspect our dfm is to use the topfeatures() function.
 topfeatures(micusp_dfm)
 
-# We can also group our counts according to any of the categories we assigned to our corpus.
-# For example, we can inspect the top words in each discipline.
+# We can also group our counts according to any of the docvars we assigned to
+# our corpus. For example, we can inspect the top words in each discipline.
+# Remember you can check the docvars of this dfm by running:
+# docvars(micusp_dfm)
+
 topfeatures(micusp_dfm, groups = "discipline_cat")
 
 # Now try to examine the top features grouped by paper type.
@@ -140,6 +166,34 @@ word_freq <- textstat_frequency(micusp_dfm)
 
 # Let's see what we've created.
 View(word_freq)
+
+# Now collect the word frequencies grouped by discipline
+word_freq_discipline <- textstat_frequency(micusp_dfm, groups = "discipline_cat")
+
+# Visualizing with groups
+top_word_freqs <- word_freq_discipline %>% 
+  filter(rank <= 6)
+
+# If we only give it the feature and frequency, ggplot will add everything up for us.
+ggplot(top_word_freqs, aes(x = feature, y = frequency)) +
+  geom_col()
+
+# If we want to subdivide our plot by discipline, we have a few options. One is
+# to partition by color:
+ggplot(top_word_freqs, aes(x = feature, y = frequency, fill = group)) +
+  geom_col()
+
+# Another is to make "small multiples" by what ggplot calls "faceting"
+ggplot(top_word_freqs, aes(x = feature, y = frequency)) +
+  geom_col() +
+  facet_wrap(~ group)
+
+# We can still stack on additional modifiers like flipping coordinates, and
+# ggplot almost always knows what to do
+ggplot(top_word_freqs, aes(x = group, y = frequency)) +
+  geom_col() +
+  facet_wrap(~ feature) +
+  coord_flip()
 
 # Overview so far ----
 
