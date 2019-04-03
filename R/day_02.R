@@ -21,6 +21,7 @@
 # - grouping by facets / small-multiples
 # - 2D scatterplots
 # - Text labels
+# - boxplot
 #
 # We'll begin, just as we did in the the first workshop.
 #
@@ -439,7 +440,10 @@ kwic(micusp_corpus, "data", window = 3, valuetype = "fixed")
 
 kwic(micusp_corpus, "suggest*", window = 3, valuetype = "glob")
 
-# We can use kwic() to look at the context of the significant keywords we identified in the previous section. IF we want to just look at the English docs from the corpus, then we will first use corpus_subset() to only pull those docs.
+# We can use kwic() to look at the context of the significant keywords we
+# identified in the previous section. IF we want to just look at the English
+# docs from the corpus, then we will first use corpus_subset() to only pull
+# those docs.
 
 english_corpus <- corpus_subset(micusp_corpus, discipline_cat == "English")
 english_corpus
@@ -471,19 +475,20 @@ hb_dict <- dictionary(file = "data/stoplists/hedges_boosters.yml")
 # Note that our dictionary has only 1 level.
 # But if we can a more complex taxonomy, we can specify
 # which level of the taxonomy we'd like to group our tokens under.
-hb_toks <- tokens_lookup(micusp_tokens, hb_dict, levels = 1)
+hb_toks <- tokens_lookup(micusp_tokens, dictionary = hb_dict, levels = 1)
 
 # Now we create a new document features matrix.
 # And we're going to convert it to a data frame that we can use later.
 hb_dfm <- dfm(hb_toks)
-hb_dfm <- convert(hb_dfm, to = "data.frame")
+hb_dataframe <- convert(hb_dfm, to = "data.frame")
 
 
 # Check the frequencies.
 textstat_frequency(hb_dfm)
 
 # Try out keyness using "Proposals" as our target.
-textstat_keyness(hb_dfm, docvars(hb_dfm, "paper_type") == "Proposal", measure = "lr")
+textstat_keyness(hb_dfm, docvars(hb_dfm, "paper_type") == "Proposal", measure = "lr") %>% 
+  mutate(effect = effect_size(n_target, n_reference))
 
 # If we wanted to plot hedges vs. boosters, however,
 # we would first need to normalize our counts -- 
@@ -500,15 +505,21 @@ sentences_total <- nsentence(micusp_corpus)
 # Our function requires two arguments -- x and y.
 # The fuction itself is contain betwen the curly brackets.
 # It divides x by y, rounds it to 5 decimal places, and returns it.
-simple_ratio <- function(x,y){
+simple_ratio <- function(x, y) {
   ratio <- x / y
   return(ratio)
 }
 
+
+
 # Now we're going to apply the function to the hedges column
 # in our hb_dfm and to our tokens_total.
-hedges_norm <- mapply(simple_ratio, hb_dfm$hedges, tokens_total)
-boosters_norm <- mapply(simple_ratio, hb_dfm$boosters, tokens_total)
+
+hb_dataframe %>% 
+  mutate()
+
+hedges_norm <- mapply(simple_ratio, hb_dataframe$hedges, tokens_total)
+boosters_norm <- mapply(simple_ratio, hb_dataframe$boosters, tokens_total)
 
 # How would you normalize by the total number of sentences instead?
 
@@ -517,6 +528,10 @@ boosters_norm <- mapply(simple_ratio, hb_dfm$boosters, tokens_total)
 # We now append these results to our hb_dfm in columns called "hedges_norm" and "boosters_norm".
 hb_dfm$hedges_norm <- hedges_norm
 hb_dfm$boosters_norm <- boosters_norm
+
+hb_ratios <- data.frame(
+  
+)
 
 ggplot(hb_dfm, aes(x = hedges_norm, y = boosters_norm)) +
   geom_point()
