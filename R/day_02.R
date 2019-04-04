@@ -383,7 +383,7 @@ biology_keywords <- textstat_keyness(micusp_dfm, docvars(micusp_dfm, "discipline
 # column with shared values. Both of these data frames will have rows in their
 # "feature" columns that are the same, so we will join on that column. The
 # "suffix" argument will add extra names to the shared, non-joining columns like
-# "effect_size" and "p" so that
+# "effect_size" and "p":
   
 comparison_stats <- english_keywords %>% 
   left_join(biology_keywords, by = "feature", suffix = c("_eng", "_bio"))
