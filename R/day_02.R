@@ -76,7 +76,7 @@ colnames(micusp_meta)
 # select() function takes a data.frame and then one or more column names to
 # keep. We'll name our new data frame "doc_categories".
 doc_categories <- micusp_meta %>% 
-  select(discipline_cat, level_cat, student_gender, speaker_status, paper_type, paper_features)
+  select(text_id, discipline_cat, level_cat, student_gender, speaker_status, paper_type, paper_features)
 
 # In our new data frame, you find the following information:
 # a three letter code for each discipline (discipline_cat),
@@ -131,7 +131,7 @@ micusp_tokens <- tokens(micusp_corpus, include_docvars=TRUE, remove_punct = TRUE
 #
 # First, we need to load in a list of our expressions. Using readLines(), we
 # load in a text file containing a multi-word expression on each line.
-multiword_expressions <- readLines("data/stoplists/mwe_short.txt")
+multiword_expressions <- readLines("data/dictionaries/mwe_short.txt")
 
 # This creates a character vector; in other words, multiple string values.
 multiword_expressions
@@ -320,17 +320,17 @@ female_keywords <- female_keywords %>%
 female_keywords
 
 # To reorder the data frame, we use arrange()
-key_words %>% 
+female_keywords %>% 
   arrange(effect)
 
 # To sort in descending order, wrap the variable name in desc()
-key_words %>% 
+female_keywords %>% 
   arrange(desc(effect))
 
 # What if we want to get the largest effect sizes, no matter whether positive or negative? We'd need to calculate the absolute value
 ?abs
 
-# Add a column to key_words called abs_effect. You'll want to use mutate() and abs() in combination
+# Add a column to key_words called abs_effect. You'll want to use mutate() and abs() in combination. Find the biggest effect sizes, negative or positive.
 
 ### YOUR CODE HERE
 
@@ -467,7 +467,7 @@ kwic(english_corpus, "blood*", window = 4, valuetype = "glob")
 # You can look at the example if you wish. This one has list of words and
 # phrases grouped under "hedges" and another under "boosters". To load it, we
 # use the dictionary() function.
-hb_dict <- dictionary(file = "data/stoplists/hedges_boosters.yml")
+hb_dict <- dictionary(file = "data/dictionaries/hedges_boosters.yml")
 
 # Next we create a new tokens object from our original one.
 # By using tokens_lookup() with our dicitonary, we will create
@@ -475,11 +475,11 @@ hb_dict <- dictionary(file = "data/stoplists/hedges_boosters.yml")
 # Note that our dictionary has only 1 level.
 # But if we can a more complex taxonomy, we can specify
 # which level of the taxonomy we'd like to group our tokens under.
-hb_toks <- tokens_lookup(micusp_tokens, dictionary = hb_dict, levels = 1)
+hb_tokens <- tokens_lookup(micusp_tokens, dictionary = hb_dict, levels = 1)
 
 # Now we create a new document features matrix.
 # And we're going to convert it to a data frame that we can use later.
-hb_dfm <- dfm(hb_toks)
+hb_dfm <- dfm(hb_tokens)
 hb_dataframe <- convert(hb_dfm, to = "data.frame")
 
 
@@ -493,13 +493,9 @@ textstat_keyness(hb_dfm, docvars(hb_dfm, "paper_type") == "Proposal", measure = 
 # If we wanted to plot hedges vs. boosters, however,
 # we would first need to normalize our counts -- 
 # by total counts of tokens or sentences in each text.
-# This information can be retrieved easily from our tokens and corpus.
+# This information can be retrieved from our tokens and corpus.
 ntoken(micusp_tokens)
 nsentence(micusp_corpus)
-
-# Let's store both of those first.
-tokens_total <- ntoken(micusp_tokens)
-sentences_total <- nsentence(micusp_corpus)
 
 # Next, we can  create our own, very simple function, which we name "simple_ratio".
 # Our function requires two arguments -- x and y.
@@ -510,28 +506,65 @@ simple_ratio <- function(x, y) {
   return(ratio)
 }
 
+# Now we're going to apply the function to the hedges column in our hb_dfm and
+# to our tokens_total. You can create multiple new columns at once with mutate()
+# by chaining together new column definitions with commas.
 
+# First we'll add columns with total tokens and total sentences
+hb_dataframe <- hb_dataframe %>% 
+  mutate(
+    tokens_total = ntoken(micusp_tokens),
+    sentences_total = nsentence(micusp_corpus),
+    hedges_norm = simple_ratio(hedges, tokens_total), 
+    boosters_norm = simple_ratio(boosters, tokens_total)
+  )
 
-# Now we're going to apply the function to the hedges column
-# in our hb_dfm and to our tokens_total.
+hb_dataframe
 
-hb_dataframe %>% 
-  mutate()
-
-hedges_norm <- mapply(simple_ratio, hb_dataframe$hedges, tokens_total)
-boosters_norm <- mapply(simple_ratio, hb_dataframe$boosters, tokens_total)
-
-# How would you normalize by the total number of sentences instead?
+# Add columns that normalize by the number of by the total number of sentences instead?
 
 ### YOUR CODE HERE
 
-# We now append these results to our hb_dfm in columns called "hedges_norm" and "boosters_norm".
-hb_dfm$hedges_norm <- hedges_norm
-hb_dfm$boosters_norm <- boosters_norm
+# Now that we have computed all these new statistics about hedges and boosters
+# with our documents, it would be useful to attach these statistics to our
+# original corpus metadata so we can visualize how hedges and boosters differ
+# across different categories. We'll use left_join() to connect them by the shared "document" = "text_id" column
 
-hb_ratios <- data.frame(
-  
-)
+hb_joined <- hb_dataframe %>% 
+  left_join(micusp_meta, by = c("document" = "text_id"))
 
-ggplot(hb_dfm, aes(x = hedges_norm, y = boosters_norm)) +
-  geom_point()
+hb_joined
+
+# gather() does a bit of table rearranging that will let us compare
+# hedges/boosters as different groups of the same kind of measure. Don't worry
+# about understanding that quite yet - but do take a look at how it changes
+# the table!
+hb_ratios <- hb_joined %>% 
+  gather(token_class, norm_freq, hedges_norm:boosters_norm)
+
+# Now all our normalized values are in the column "norm_freq" and the CATEGORY
+# of that frequency (either "hedges_norm" or "boosters_norm") is in the
+# "token_class" column
+
+View(hb_ratios)
+
+# To compare the "spread" of a numeric variable, a boxplot can be very useful to
+# show distributions.
+ggplot(hb_ratios, aes(x = paper_type, y = norm_freq, fill = token_class)) +
+  geom_boxplot()
+
+# Try varying the x axis to compare student gender or discipline category
+
+### YOUR CODE HERE
+
+# We're using the x and fill aesthetics to divide our data along 2 categories -
+# you could add a third division by using facet_wrap() as well
+
+ggplot(hb_ratios, aes(x = discipline_cat, y = norm_freq, fill = token_class)) +
+  geom_boxplot() +
+  facet_wrap(~ student_gender)
+
+# This looks heinous. Flip the coordinates, and try to reorder() the x axis to
+# order disciplines by the frequency of these tokens
+
+### YOUR CODE HERE
