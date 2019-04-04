@@ -486,10 +486,6 @@ hb_dataframe <- convert(hb_dfm, to = "data.frame")
 # Check the frequencies.
 textstat_frequency(hb_dfm)
 
-# Try out keyness using "Proposals" as our target.
-textstat_keyness(hb_dfm, docvars(hb_dfm, "paper_type") == "Proposal", measure = "lr") %>% 
-  mutate(effect = effect_size(n_target, n_reference))
-
 # If we wanted to plot hedges vs. boosters, however,
 # we would first need to normalize our counts -- 
 # by total counts of tokens or sentences in each text.
