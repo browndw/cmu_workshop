@@ -9,8 +9,6 @@
 # - mutate()
 # - filter()
 # - arrange()
-# - min_rank()
-# - slice()
 #
 # New functions for text tokenization and analytics
 # - tokens_compound()
