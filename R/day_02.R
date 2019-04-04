@@ -80,7 +80,8 @@ doc_categories <- micusp_meta %>%
 # a three letter code for each discipline (discipline_cat),
 # a code for the grade-level of the student writer (level_cat),
 # a code for the gender of the student writer (student_gender),
-# and a code for whether student writer identefies as a native or non-native speaker of English (speaker_status).
+# and a code for whether student writer identefies as a native or non-native
+# speaker of English (speaker_status).
 View(doc_categories)
 
 # Because we have 170 text files to load into our corpus, we need to first read
@@ -305,7 +306,9 @@ female_keywords$n_target
 # And this vector of numbers is what we pass into the effect_size() function
 effect_size(female_keywords$n_target, female_keywords$n_reference)
 
-# A common way to compute new columns for a data frame based on values in existing columns is to use the mutate() function:
+# A common way to compute new columns for a data frame based on values in
+# existing columns is to use the mutate() function:
+
 # (We'll also use the %>% operator for readability)
 female_keywords <- female_keywords %>% 
   # While we're inside muatate(), we don't have to repeat the data frame name or
@@ -325,10 +328,12 @@ female_keywords %>%
 female_keywords %>% 
   arrange(desc(effect))
 
-# What if we want to get the largest effect sizes, no matter whether positive or negative? We'd need to calculate the absolute value
+# What if we want to get the largest effect sizes, no matter whether positive or
+# negative? We'd need to calculate the absolute value
 ?abs
 
-# Add a column to key_words called abs_effect. You'll want to use mutate() and abs() in combination. Find the biggest effect sizes, negative or positive.
+# Add a column to key_words called abs_effect. You'll want to use mutate() and
+# abs() in combination. Find the biggest effect sizes, negative or positive.
 
 ### YOUR CODE HERE
 
@@ -373,9 +378,12 @@ comparison_stats <- english_keywords %>%
 colnames(comparison_stats)
 
 significant_comparison_stats <- comparison_stats %>% 
-  # We'll want to do some filtering first - let's make sure each term we try to display shows up at least once in both of our categories
+  # We'll want to do some filtering first - let's make sure each term we try to
+  # display shows up at least once in both of our categories
   filter(n_target_eng > 1 & n_target_eng > 1) %>% 
-  # And we will create two summary variables - largest_effect, giving us a sense of the most powerful effect whether positive or negative, and smallest_p - which features have the smallest p for either 
+  # And we will create two summary variables - largest_effect, giving us a sense
+  # of the most powerful effect whether positive or negative, and smallest_p -
+  # which features have the smallest p for either
 mutate(
     average_effect = (abs(effect_eng) + abs(effect_bio)) / 2,
     average_p = (p_eng + p_bio) / 2)
@@ -412,7 +420,10 @@ ggplot(significant_comparison_stats,
   # opaque and larger numbers are more transparent.
   scale_alpha(trans = "reverse") 
 
-# Another good addition would be horizontal and vertical lines centered on the 0-axes so we know when something goes from having e.g. a positive biology effect size to a negative one.
+# Another good addition would be horizontal and vertical lines centered on the
+# 0-axes so we know when something goes from having e.g. a positive biology
+# effect size to a negative one.
+
 # Add geom_hline(yintercept = 0)
 # Add geom_vline(xintercept = 0)
 
@@ -515,14 +526,16 @@ hb_dataframe <- hb_dataframe %>%
 
 hb_dataframe
 
-# Add columns that normalize by the number of by the total number of sentences instead?
+# Add columns that normalize by the number of by the total number of sentences
+# instead?
 
 ### YOUR CODE HERE
 
 # Now that we have computed all these new statistics about hedges and boosters
 # with our documents, it would be useful to attach these statistics to our
 # original corpus metadata so we can visualize how hedges and boosters differ
-# across different categories. We'll use left_join() to connect them by the shared "document" = "text_id" column
+# across different categories. We'll use left_join() to connect them by the
+# shared "document" = "text_id" column
 
 hb_joined <- hb_dataframe %>% 
   left_join(micusp_meta, by = c("document" = "text_id"))
