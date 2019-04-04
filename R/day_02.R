@@ -337,17 +337,32 @@ female_keywords %>%
 
 ### YOUR CODE HERE
 
+# Given what we know about the other variables calculated in this table, how can
+# ordering by effect size be misleading?
+
+# We'll want to filter() this data to only show those with p values below a
+# certain cutoff. Add on to the code below to arrange by absolute effet size
+# after filtering for p values of less than 5%
+
+sig_female_keywords <- female_keywords %>% 
+  filter(p <= 0.05) ### %>% YOUR CODE HERE
+
 # Here we can see the top ten keywords when the paper_type "Report" is the target.
-report_keywords <- textstat_keyness(micusp_dfm, docvars(micusp_dfm, "paper_type") == "Report", 
-                      measure = "lr")
+type_report_index <- docvars(micusp_dfm, "paper_type") == "Report"
+report_keywords <- textstat_keyness(micusp_dfm, type_report_index, measure = "lr")
 
 report_keywords %>% 
   mutate(effect = effect_size(n_target, n_reference)) %>% 
   arrange(desc(effect))
 
-# Now try to examine the top 10 keywords when the paper_type is a Proposal.
+# Now try to examine the top 10 keywords when the paper_type is a Proposal. Dont
+# forget to add the effect size column as well.
 
 ### YOUR CODE HERE
+
+# It can be useful to compare the terms that are distinctive for one category
+# versus another. Let's calculate keywords with effect sizes for both English
+# and Biology papers
 
 english_keywords <- textstat_keyness(micusp_dfm, docvars(micusp_dfm, "discipline_cat") == "English", 
                                     measure = "lr") %>% 
