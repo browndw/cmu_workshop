@@ -36,7 +36,7 @@ ggplot(micusp_meta, aes(tokens_total)) +
 
 # If we want to change the appearance of the bars, we can change
 # their fill and line color.
-ggplot(micusp_meta, aes(sentences_total)) +
+ggplot(micusp_meta, aes(tokens_total)) +
   geom_histogram(fill = "white", color = "black", binwidth = bw_tokens) +
   theme_classic()
 
