@@ -154,17 +154,34 @@ ggplot(person_1st_sing, aes(x = year, y = counts_permil)) +
 # We can read in the tables for the 1st person plural & the 2nd person
 person_1st_pl <- read_csv("data/tables/person_1st_pl.csv")
 person_2nd <- read_csv("data/tables/person_2nd.csv")
-
-
+# Next, we can combine our counts into a single data frame.
+# To do this, we use bind_rows(), which stacks data frames top to bottom,
+# as long as they have the same columns!!!!
+# Also, we'll use .id to add a column that idenfies where the data originated --
+# creating a grouping variable that we can use in our aesthetics.
 pronouns_joined <- bind_rows(person_1st_sing, person_1st_pl, person_2nd, .id = "id")
 
+# When we plot the results, note the addition of the color aesthetic.
 ggplot(pronouns_joined, aes(x = year, y = counts_permil, color = id)) +
   geom_point() +
   geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), 
               size = 0.5)
 
+# The data looks quite messy in the early nineteenth century --
+# reflecting far less robust data than for later years.
+# To truncate our plot, we can subset it using subset().
+# For example, if we want the plot to bein with the twentieth century we can
+# specify that the year column must be greater than 1899.
 ggplot(subset(pronouns_joined, year > 1899), aes(x = year, y = counts_permil, color = id)) +
   geom_point() +
   geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), 
               size = 0.5)
 
+# We might also note that the y-axis in not starting at 0,
+# which is not usually good practice.
+# To set it to something specific, we can use ylim().
+ggplot(subset(pronouns_joined, year > 1899), aes(x = year, y = counts_permil, color = id)) +
+  geom_point() +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), 
+              size = 0.5) +
+  ylim(0,12000)
