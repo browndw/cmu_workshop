@@ -140,3 +140,25 @@ ggplot(witch_hunt, aes(x = year, y = counts_permil)) +
   geom_point() +
   geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), 
               color = "tomato", size = 0.5, linetype = "dashed")
+
+# Now we'll try something similar with personal pronouns.
+# We'll read in a table for the first person singular.
+person_1st_sing <- read_csv("data/tables/person_1st_sing.csv")
+
+# Let's see what that looks like.
+ggplot(person_1st_sing, aes(x = year, y = counts_permil)) +
+  geom_point() +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), 
+              size = 0.5)
+
+# We can read in the tables for the 1st person plural & the 2nd person
+person_1st_pl <- read_csv("data/tables/person_1st_pl.csv")
+person_2nd <- read_csv("data/tables/person_2nd.csv")
+
+
+pronouns_joined <- bind_rows(person_1st_sing, person_1st_pl, person_2nd, .id = "id")
+
+ggplot(pronouns_joined, aes(x = year, y = counts_permil, color = id)) +
+  geom_point() +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), 
+              size = 0.5)
