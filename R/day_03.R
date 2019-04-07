@@ -154,6 +154,7 @@ ggplot(person_1st_sing, aes(x = year, y = counts_permil)) +
 # We can read in the tables for the 1st person plural & the 2nd person
 person_1st_pl <- read_csv("data/tables/person_1st_pl.csv")
 person_2nd <- read_csv("data/tables/person_2nd.csv")
+
 # Next, we can combine our counts into a single data frame.
 # To do this, we use bind_rows(), which stacks data frames top to bottom,
 # as long as they have the same columns!!!!
