@@ -162,3 +162,9 @@ ggplot(pronouns_joined, aes(x = year, y = counts_permil, color = id)) +
   geom_point() +
   geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), 
               size = 0.5)
+
+ggplot(subset(pronouns_joined, year > 1899), aes(x = year, y = counts_permil, color = id)) +
+  geom_point() +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), 
+              size = 0.5)
+
