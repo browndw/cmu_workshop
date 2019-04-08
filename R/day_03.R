@@ -186,3 +186,17 @@ ggplot(subset(pronouns_joined, year > 1899), aes(x = year, y = counts_permil, co
   geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), 
               size = 0.5) +
   ylim(0,12000)
+
+
+# Plotting factors...
+micusp_ds <- read_csv("data/tables/micusp_ds.csv")
+
+ds_factors <- factanal(micusp_ds[,3:27], 3, rotation="promax") 
+f_loadings <- as.data.frame(unclass(ds_factors$loadings))
+f_loadings <- rownames_to_column(f_loadings, "cluster")
+
+
+ggplot(f_loadings, aes(x = reorder(cluster, Factor1), y = Factor1)) +
+    geom_col() +
+    coord_flip()
+
