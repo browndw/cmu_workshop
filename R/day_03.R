@@ -191,8 +191,9 @@ ggplot(subset(pronouns_joined, year > 1899), aes(x = year, y = counts_permil, co
 # Plotting factors...
 micusp_ds <- read_csv("data/tables/micusp_ds.csv")
 
-ds_factors <- factanal(micusp_ds[,3:27], 3, rotation="promax") 
-f_loadings <- as.data.frame(unclass(ds_factors$loadings))
+micusp_sub <- micusp_ds %>% select(-text_id, -discipline_cat)
+micusp_factors <- factanal(micusp_sub, 3, rotation="promax") 
+f_loadings <- as.data.frame(unclass(micusp_factors$loadings))
 f_loadings <- rownames_to_column(f_loadings, "cluster")
 
 
