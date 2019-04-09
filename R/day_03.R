@@ -201,3 +201,34 @@ ggplot(f_loadings, aes(x = reorder(cluster, Factor1), y = Factor1)) +
     geom_col() +
     coord_flip()
 
+ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
+  geom_point()
+
+ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
+  geom_point() +
+  geom_text()
+
+ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
+  geom_point() +
+  geom_text(vjust = 0)
+
+ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
+  geom_text()
+
+ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
+  geom_text() +
+  theme_bw()
+
+ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
+  geom_text() +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
+  geom_text() +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0)
