@@ -200,14 +200,34 @@ ggplot(subset(pronouns_joined, year > 1899), aes(x = year, y = counts_permil, co
   ylim(0, 12000)
 
 # Plotting factors ----
+# Load in a file containing the results from a DocuScope analysis of MISUCP.
+# DocuScope is large and detailed dictionary that groups words and phrases
+# by their rhetorical functions.
+# Here are the counts of the largest groupings (so the least amount of detail).
 micusp_ds <- read_csv("data/tables/micusp_ds.csv")
 
+# We only want the the columns with numerical data.
+# So we're going to drop the text_id and discipline_cat columns.
 micusp_sub <- micusp_ds %>% select(-text_id, -discipline_cat)
-micusp_factors <- factanal(micusp_sub, 3, rotation = "promax") 
+
+# Now we're going to run factor analysis.
+# Factor analysis looks for variables that correlate either
+# positively or negatatively with each other and groups them into factors.
+# It is a common method for reducing complexity in data.
+# Here, we're going to generate 3 factors and use a promax rotation.
+# A short introduction to these techniques is here:
+# https://www.statmethods.net/advstats/factor.html
+micusp_factors <- factanal(micusp_sub, 3, rotation = "promax")
+
+# From that analysis, we want to extract the loadings,
+# which can plot in various ways.
 f_loadings <- as.data.frame(unclass(micusp_factors$loadings))
+
+# Before we plot, we want to move the names of the rows
+# to a new column that we can call "cluster".
 f_loadings <- rownames_to_column(f_loadings, "cluster")
 
-
+# Now let's look at a quick plot of the first factor.
 ggplot(f_loadings, aes(x = cluster, y = Factor1)) +
     geom_col()
 
