@@ -1,4 +1,3 @@
-
 library(tidyverse)
 
 # Now we are going to load file containing all of the metadata for our corpus.
@@ -6,16 +5,17 @@ library(tidyverse)
 # implementation for comma-separated-value (or csv) files.
 micusp_meta <- read_csv("data/academic/MICUSP_meta.csv")
 
-# Let's start by making a histogram, which is a common visualization
-# for checking how data is distributed.
-# Our data has a column for tokens_total.
-# Those totals were calculated in the previous workshop using uanteda's ntoken function.
+# Let's start by making a histogram, which is a common visualization for
+# checking how data is distributed. Our data has a column for tokens_total.
+# Those totals were calculated in the previous workshop using uanteda's ntoken
+# function.
 ggplot(micusp_meta, aes(tokens_total)) +
   geom_histogram()
 
 # Note that ggplot gives us a warning about choosing 'binwidth'.
-# This is the option for telling ggplot the size the buckets to group our values into.
-# One common way to determine binwidth is with the Freedman–Diaconis rule:
+#
+# This is the option for telling ggplot the size the buckets to group our values
+# into. One common way to determine binwidth is with the Freedman–Diaconis rule:
 # a rule based on the interquartile range, which we can calculate using IQR()
 # and the number of observations, which we can calculate using length()
 
@@ -23,7 +23,7 @@ IQR(micusp_meta$tokens_total)
 length(micusp_meta$tokens_total)
 
 # We'll store our value as "bw_tokens".
-bw_tokens <- 2 * IQR(micusp_meta$tokens_total) / length(micusp_meta$tokens_total)^(1/3)
+bw_tokens <- 2 * IQR(micusp_meta$tokens_total) / length(micusp_meta$tokens_total)^(1 / 3)
 
 # Now we can include that information in our plot 
 ggplot(micusp_meta, aes(tokens_total)) +
@@ -43,7 +43,7 @@ ggplot(micusp_meta, aes(tokens_total)) +
 # The axis labels can be changed using labs().
 ggplot(micusp_meta, aes(tokens_total)) +
   geom_histogram(fill = "white", color = "black", binwidth = bw_tokens) +
-  labs(x="Tokens", y = "Count") +
+  labs(x = "Tokens", y = "Count") +
   theme_classic()
 
 # Try to create a histogram for the number of sentences in each file: sentences_total.
@@ -73,6 +73,10 @@ hb_joined
 hb_ratios <- hb_joined %>% 
   gather(token_class, norm_freq, hedges_norm:boosters_norm)
 
+# Whenever we want to regroup our graph by something like color or facets, we
+# need to make sure that the group id (int his case, "token_class") is in its
+# own column.
+
 # Now all our normalized values are in the column "norm_freq" and the CATEGORY
 # of that frequency (either "hedges_norm" or "boosters_norm") is in the
 # "token_class" column
@@ -84,14 +88,18 @@ View(hb_ratios)
 ggplot(hb_ratios, aes(x = paper_type, y = norm_freq, fill = token_class)) +
   geom_boxplot()
 
-# Try varying the x axis to compare student gender or discipline category
+# Try varying the x axis to compare student gender
+
+### YOUR CODE HERE
+
+# Now vary it to compare the disciplines
 
 ### YOUR CODE HERE
 
 # We're using the x and fill aesthetics to divide our data along 2 categories -
 # you could add a third division by using facet_wrap() as well
 
-ggplot(hb_ratios, aes(x = discipline_cat, y = norm_freq, fill = token_class)) +
+ggplot(hb_ratios, aes(x = paper_discipline, y = norm_freq, fill = token_class)) +
   geom_boxplot() +
   facet_wrap(~ student_gender)
 
@@ -162,46 +170,56 @@ person_2nd <- read_csv("data/tables/person_2nd.csv")
 # creating a grouping variable that we can use in our aesthetics.
 pronouns_joined <- bind_rows(person_1st_sing, person_1st_pl, person_2nd, .id = "id")
 
+pronouns_joined
+
+# First plot the points without grouping them by color, and add a smooth line
+
+ggplot(pronouns_joined, aes(x = year, y = counts_permil)) +
+  geom_point() +
+  geom_smooth()
+
 # When we plot the results, note the addition of the color aesthetic.
 ggplot(pronouns_joined, aes(x = year, y = counts_permil, color = id)) +
   geom_point() +
-  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), 
-              size = 0.5)
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"))
 
 # The data looks quite messy in the early nineteenth century --
 # reflecting far less robust data than for later years.
-# To truncate our plot, we can subset it using subset().
+# To truncate our plot, we can filter it using filter().
 # For example, if we want the plot to bein with the twentieth century we can
 # specify that the year column must be greater than 1899.
+ggplot(filter(pronouns_joined, year > 1899), aes(x = year, y = counts_permil, color = id)) +
+  geom_point() +
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"))
+
+# We might also note that the y-axis in not starting at 0, which is not always
+# good practice. To set it to something specific, we can use ylim().
 ggplot(subset(pronouns_joined, year > 1899), aes(x = year, y = counts_permil, color = id)) +
   geom_point() +
-  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), 
-              size = 0.5)
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs")) +
+  ylim(0, 12000)
 
-# We might also note that the y-axis in not starting at 0,
-# which is not usually good practice.
-# To set it to something specific, we can use ylim().
-ggplot(subset(pronouns_joined, year > 1899), aes(x = year, y = counts_permil, color = id)) +
-  geom_point() +
-  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), 
-              size = 0.5) +
-  ylim(0,12000)
-
-
-# Plotting factors...
+# Plotting factors ----
 micusp_ds <- read_csv("data/tables/micusp_ds.csv")
 
 micusp_sub <- micusp_ds %>% select(-text_id, -discipline_cat)
-micusp_factors <- factanal(micusp_sub, 3, rotation="promax") 
+micusp_factors <- factanal(micusp_sub, 3, rotation = "promax") 
 f_loadings <- as.data.frame(unclass(micusp_factors$loadings))
 f_loadings <- rownames_to_column(f_loadings, "cluster")
 
 
-ggplot(f_loadings, aes(x = reorder(cluster, Factor1), y = Factor1)) +
-    geom_col() +
-    coord_flip()
+ggplot(f_loadings, aes(x = cluster, y = Factor1)) +
+    geom_col()
 
-ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
+# Flip the axes so the cluster labels are legible
+
+### YOUR CODE HERE
+
+# Now reorder cluster based on the size of Factor1
+
+### YOUR CODE HERE
+
+ggplot(f_loadings, aes(x = Factor1, y = Factor2)) +
   geom_point()
 
 ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
@@ -209,26 +227,28 @@ ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
   geom_text()
 
 ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
-  geom_point() +
-  geom_text(vjust = 0)
+  geom_label()
+
+# There are many packages that extend ggplot2 by adding new geometries. One of
+# them is 'ggrepel', which will try to keep text labels from overlapping.
+
+library(ggrepel)
+ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
+  geom_label_repel()
+
+# Check the help file for geom_label_repel() to see how we can tweak the boxes
+# to have more padding around them
+
+?geom_label_repel
+
+ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
+  geom_label_repel(box.padding = 0.5)
+
 
 ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
   geom_text()
 
 ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
-  geom_text() +
-  theme_bw()
-
-ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
-  geom_text() +
-  theme_bw() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
-
-ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
-  geom_text() +
-  theme_bw() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank()) +
   geom_hline(yintercept = 0) +
-  geom_vline(xintercept = 0)
+  geom_vline(xintercept = 0) +
+  geom_label_repel()
