@@ -5,12 +5,33 @@ library(tidyverse)
 # implementation for comma-separated-value (or csv) files.
 micusp_meta <- read_csv("data/academic/MICUSP_meta.csv")
 
+# Aesthethics ----
+
 # Let's start by making a histogram, which is a common visualization for
 # checking how data is distributed. Our data has a column for tokens_total.
 # Those totals were calculated in the previous workshop using uanteda's ntoken
 # function.
-ggplot(micusp_meta, aes(tokens_total)) +
+ggplot(micusp_meta, aes(x = tokens_total)) +
   geom_histogram()
+
+# Note that when we put values into aes(), we're "mapping" their values to the
+# color variable of the histogram geometry. This is where you put things you
+# want to vary based on the underlying data. If we just wanted to set the fill
+# of this histogram to "purple" though...
+
+ggplot(micusp_meta, aes(x = tokens_total, fill = "purple")) +
+  geom_histogram()
+
+# ... ggplot does what we ask. We just gave it one value, "purple", for the fill
+# - and so it mapped that single data value to a color palette. If we literally
+# want to set the fill of the histogram to be purple, then we don't need to map
+# it to an aesthethic - instead, we declare that directly as an argument to
+# geom_histogram()
+
+ggplot(micusp_meta, aes(x = tokens_total)) +
+  geom_histogram(fill = "purple")
+
+# Histograms ----
 
 # Note that ggplot gives us a warning about choosing 'binwidth'.
 #
@@ -26,30 +47,25 @@ length(micusp_meta$tokens_total)
 bw_tokens <- 2 * IQR(micusp_meta$tokens_total) / length(micusp_meta$tokens_total)^(1 / 3)
 
 # Now we can include that information in our plot 
-ggplot(micusp_meta, aes(tokens_total)) +
+ggplot(micusp_meta, aes(x = tokens_total)) +
   geom_histogram(binwidth = bw_tokens)
-
-# We can also alter the look of our plot using another theme.
-ggplot(micusp_meta, aes(tokens_total)) +
-  geom_histogram(binwidth = bw_tokens) +
-  theme_classic()
 
 # If we want to change the appearance of the bars, we can change
 # their fill and line color.
-ggplot(micusp_meta, aes(tokens_total)) +
-  geom_histogram(fill = "white", color = "black", binwidth = bw_tokens) +
-  theme_classic()
+ggplot(micusp_meta, aes(x = tokens_total)) +
+  geom_histogram(fill = "white", color = "black", binwidth = bw_tokens)
 
 # The axis labels can be changed using labs().
-ggplot(micusp_meta, aes(tokens_total)) +
+ggplot(micusp_meta, aes(x = tokens_total)) +
   geom_histogram(fill = "white", color = "black", binwidth = bw_tokens) +
-  labs(x = "Tokens", y = "Count") +
-  theme_classic()
+  labs(x = "Tokens", y = "Count")
 
-# Try to create a histogram for the number of sentences in each file: sentences_total.
-# Remeber that you'll need to calculate a new "bandwidth" for sentence counts.
+# Try to create a histogram for the number of sentences in each file Remeber
+# that you'll need to calculate a new "bandwidth" for sentence counts.
 
 ### YOUR CODE HERE
+
+# Boxplots ----
 
 # Now let's try let's return to the hedges and boosters data we generated
 # in the previous workshop.
@@ -81,7 +97,7 @@ hb_ratios <- hb_joined %>%
 # of that frequency (either "hedges_norm" or "boosters_norm") is in the
 # "token_class" column
 
-View(hb_ratios)
+hb_ratios
 
 # To compare the "spread" of a numeric variable, a boxplot can be very useful to
 # show distributions.
@@ -107,6 +123,8 @@ ggplot(hb_ratios, aes(x = paper_discipline, y = norm_freq, fill = token_class)) 
 # order disciplines by the frequency of these tokens
 
 ### YOUR CODE HERE
+
+# Scatterplots & Time-series ----
 
 # Now let's try plotting some time-series data.
 # The data in this table comes from Google Books: https://books.google.com/ngrams#
@@ -134,14 +152,8 @@ ggplot(witch_hunt, aes(x = year, y = counts_permil)) +
 # We can also specify the color of our regression line...
 ggplot(witch_hunt, aes(x = year, y = counts_permil)) +
   geom_point() +
-  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"),
-              color = "tomato")
+  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"))
 
-# ... the size of the line...
-ggplot(witch_hunt, aes(x = year, y = counts_permil)) +
-  geom_point() +
-  geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), 
-              color = "tomato", size = 0.5)
 
 # ... and the type of line...
 ggplot(witch_hunt, aes(x = year, y = counts_permil)) +
@@ -199,7 +211,8 @@ ggplot(subset(pronouns_joined, year > 1899), aes(x = year, y = counts_permil, co
   geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs")) +
   ylim(0, 12000)
 
-# Plotting factors ----
+# Plotting text / categorical data  ----
+
 # Load in a file containing the results from a DocuScope analysis of MISUCP.
 # DocuScope is large and detailed dictionary that groups words and phrases
 # by their rhetorical functions.
@@ -272,3 +285,28 @@ ggplot(f_loadings, aes(x = Factor1, y = Factor2, label = cluster)) +
   geom_hline(yintercept = 0) +
   geom_vline(xintercept = 0) +
   geom_label_repel()
+
+# Theming ----
+
+# ggplot has some built-in themes that will modify the plot background, axis
+# styles etc. To learn how to modify a particular detail, it's easiest to google
+# or look at the ggplot cookbook: http://www.cookbook-r.com/Graphs/
+
+ggplot(hb_ratios, aes(x = paper_type, y = norm_freq, fill = token_class)) +
+  geom_boxplot()
+
+# Minimal theme removes a lot of backgrounds - can be good for printing
+ggplot(hb_ratios, aes(x = paper_type, y = norm_freq, fill = token_class)) +
+  geom_boxplot() +
+  theme_minimal()
+
+# You can specify global fonts via the theme
+ggplot(hb_ratios, aes(x = paper_type, y = norm_freq, fill = token_class)) +
+  geom_boxplot() +
+  theme_minimal(base_family = "Times New Roman")
+
+# Also adjust the position of the legend
+ggplot(hb_ratios, aes(x = paper_type, y = norm_freq, fill = token_class)) +
+  geom_boxplot() +
+  theme_minimal() +
+  theme(legend.position = "top")
